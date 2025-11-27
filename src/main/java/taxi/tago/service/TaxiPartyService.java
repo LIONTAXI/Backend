@@ -57,6 +57,25 @@ public class TaxiPartyService {
         return saved.getId();
     }
 
+    // 택시팟 목록 조회 (매칭중 & 최신순)
+    @Transactional(readOnly = true)
+    public List<TaxiPartyDto.InfoResponse> getTaxiParties() {
+        List<TaxiParty> parties = taxiPartyRepository.findAllByStatusOrderByCreatedAtDesc(TaxiPartyStatus.MATCHING);
+
+        // 엔티티 -> DTO 변환
+        return parties.stream()
+                .map(party -> new TaxiPartyDto.InfoResponse(
+                        party.getId(),
+                        party.getDeparture(),
+                        party.getDestination(),
+                        party.getMeetingTime().toLocalTime(),
+                        party.getCurrentParticipants(),
+                        party.getMaxParticipants(),
+                        party.getExpectedPrice()
+                ))
+                .collect(Collectors.toList());
+    }
+
     // 이모지 중복 방지 및 랜덤 추출 로직
     private String getUniqueRandomEmoji() {
         // 현재 '매칭 중'인 글에서 사용 중인 이모지들을 가져옴

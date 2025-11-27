@@ -2,6 +2,7 @@ package taxi.tago.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -33,5 +34,20 @@ public class TaxiPartyDto {
 
         @Schema(description = "추가 설명")
         private String content;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class InfoResponse {
+        private Long id;                 // 클릭 시 이동을 위한 ID
+        private String departure;        // 승차지
+        private String destination;      // 하차지
+
+        @JsonFormat(pattern = "HH:mm")   // "14:30" 형식
+        private LocalTime meetingTime;   // 마감 시간
+
+        private Integer currentParticipants; // 현재 인원
+        private Integer maxParticipants;     // 모집 인원
+        private Integer expectedPrice;       // 예상 가격
     }
 }

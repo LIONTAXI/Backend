@@ -43,13 +43,16 @@ public class UserMapService {
         List<User> users = userRepository.findAll();
 
         // 현재 '매칭 중'인 택시팟
-        List<TaxiParty> activeParties = taxiPartyRepository.findAllByStatus(TaxiPartyStatus.MATCHING);
+        List<TaxiParty> activeParties = taxiPartyRepository.findAllByStatusOrderByCreatedAtDesc(TaxiPartyStatus.MATCHING);
 
         Map<Long, String> hostEmojiMap = activeParties.stream()
+                .filter(party -> party.getUser() != null) // 유저 없는 방 오류 예방
                 .collect(Collectors.toMap(
-                        party -> party.getUser().getId(), // Key: 총대 유저 ID
-                        TaxiParty::getMarkerEmoji         // Value: 이모지
+                        party -> party.getUser().getId(),
+                        TaxiParty::getMarkerEmoji,
+                        (oldEmoji, newEmoji) -> oldEmoji
                 ));
+
 
         LocalDateTime threeMinutesAgo = LocalDateTime.now().minusMinutes(3); // 마지막 접속 시간 조절 여기에서 !
 
