@@ -41,30 +41,50 @@ public class TaxiPartyController {
 
     // 택시팟 정보
     @GetMapping("/api/taxi-party/{id}")
+    @Operation(
+            summary = "택시팟 정보",
+            description = "해당 택시팟의 상세정보를 표시합니다. 총대슈니/동승슈니 공통으로 사용, 추가설명 전문 포함"
+    )
     public TaxiPartyDto.DetailResponse getTaxiPartyDetail(@PathVariable Long id, @RequestParam Long userId) {
         return taxiPartyService.getTaxiPartyDetail(id, userId);
     }
 
     // 택시팟 정보 - 동승슈니 - 같이 타기
     @PostMapping("/api/taxi-party/{partyId}/participation")
+    @Operation(
+            summary = "동승슈니 - 같이 타기",
+            description = "택시팟 정보 페이지에서 동승슈니가 같이 타기 요청을 보냅니다."
+    )
     public String applyTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
         return taxiPartyService.applyTaxiParty(partyId, request.getUserId());
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
     @GetMapping("/api/taxi-party/{partyId}/requests")
+    @Operation(
+            summary = "총대슈니 - 택시팟 참여 요청 조회",
+            description = "총대슈니가 해당 택시팟 글에 들어온 모든 같이 타기 요청을 확인합니다. 수락 이후에도 목록에 표시됩니다."
+    )
     public List<TaxiUserDto.RequestResponse> getJoinRequests(@PathVariable Long partyId) {
         return taxiPartyService.getJoinRequests(partyId);
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 수락
     @PostMapping("/api/taxi-party/requests/{taxiUserId}/accept")
+    @Operation(
+            summary = "총대슈니 - 택시팟 참여 요청 수락",
+            description = "총대슈니가 특정 동승슈니에 대해 같이 타기 요청을 수락합니다. 해당 동승슈니는 이제 채팅방에 입장할 수 있습니다."
+    )
     public String acceptJoinRequest(@PathVariable Long taxiUserId) {
         return taxiPartyService.acceptJoinRequest(taxiUserId);
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 매칭 종료
     @PostMapping("/api/taxi-party/{partyId}/close")
+    @Operation(
+            summary = "총대슈니 - 매칭 종료",
+            description = "총대슈니가 매칭을 종료합니다. 해당 택시팟에 더이상 새로운 동승슈니가 함께할 수 없습니다."
+    )
     public String closeTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
         return taxiPartyService.closeTaxiParty(partyId, request.getUserId());
     }
