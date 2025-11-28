@@ -1,10 +1,7 @@
 package taxi.tago.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.TaxiPartyDto;
 import taxi.tago.service.TaxiPartyService;
 
@@ -39,5 +36,11 @@ public class TaxiPartyController {
     )
     public List<TaxiPartyDto.InfoResponse> getTaxiParties() {
         return taxiPartyService.getTaxiParties();
+    }
+
+    // 택시팟 정보
+    @GetMapping("/api/taxi-party/{id}")
+    public TaxiPartyDto.DetailResponse getTaxiPartyDetail(@PathVariable Long id) {
+        return taxiPartyService.getTaxiPartyDetail(id);
     }
 }

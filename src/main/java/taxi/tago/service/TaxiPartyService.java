@@ -76,6 +76,29 @@ public class TaxiPartyService {
                 .collect(Collectors.toList());
     }
 
+
+    // 택시팟 정보
+    @Transactional(readOnly = true)
+    public TaxiPartyDto.DetailResponse getTaxiPartyDetail(Long taxiPartyId) {
+        // ID로 택시팟 찾기
+        TaxiParty party = taxiPartyRepository.findById(taxiPartyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다. id=" + taxiPartyId));
+
+        // 엔티티 -> 상세 DTO 변환
+        return new TaxiPartyDto.DetailResponse(
+                party.getId(),
+                party.getUser().getId(),
+                party.getDeparture(),
+                party.getDestination(),
+                party.getMeetingTime().toLocalTime(),
+                party.getCurrentParticipants(),
+                party.getMaxParticipants(),
+                party.getExpectedPrice(),
+                party.getContent(),
+                party.getStatus().toString()
+        );
+    }
+
     // 이모지 중복 방지 및 랜덤 추출 로직
     private String getUniqueRandomEmoji() {
         // 현재 '매칭 중'인 글에서 사용 중인 이모지들을 가져옴

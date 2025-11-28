@@ -44,10 +44,29 @@ public class TaxiPartyDto {
         private String destination;      // 하차지
 
         @JsonFormat(pattern = "HH:mm")   // "14:30" 형식
-        private LocalTime meetingTime;   // 마감 시간
+        private LocalTime meetingTime;   // 마감 시각
 
         private Integer currentParticipants; // 현재 인원
         private Integer maxParticipants;     // 모집 인원
         private Integer expectedPrice;       // 예상 가격
+    }
+
+    // 택시팟 정보
+    @Getter
+    @AllArgsConstructor
+    public static class DetailResponse {
+        private Long id;                 // 방 ID
+        private Long hostId;             // 총대슈니 ID
+        private String departure;        // 승차지
+        private String destination;      // 하차지
+
+        @JsonFormat(pattern = "HH:mm")
+        private LocalTime meetingTime;   // 마감 시각
+
+        private Integer currentParticipants; // 현재 인원
+        private Integer maxParticipants;     // 모집 인원
+        private Integer expectedPrice;       // 예상 가격
+        private String content;              // 추가 설명
+        private String status;               // 매칭 상태
     }
 }
