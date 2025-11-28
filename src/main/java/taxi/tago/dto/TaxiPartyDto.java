@@ -68,5 +68,6 @@ public class TaxiPartyDto {
         private Integer expectedPrice;       // 예상 가격
         private String content;              // 추가 설명
         private String status;               // 매칭 상태
+        private String participationStatus;  // 나의 참여상태(NONE, WAITING, ACCEPTED)
     }
 }

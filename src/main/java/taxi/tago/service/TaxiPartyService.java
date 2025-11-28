@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -81,13 +82,23 @@ public class TaxiPartyService {
                 .collect(Collectors.toList());
     }
 
-
     // 택시팟 정보
     @Transactional(readOnly = true)
-    public TaxiPartyDto.DetailResponse getTaxiPartyDetail(Long taxiPartyId) {
+    public TaxiPartyDto.DetailResponse getTaxiPartyDetail(Long taxiPartyId, Long userId) {
         // ID로 택시팟 찾기
         TaxiParty party = taxiPartyRepository.findById(taxiPartyId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다. id=" + taxiPartyId));
+
+        // 나의 참여 상태 기본값: 참여 안 함
+        String myStatus = "NONE"; //
+
+        // 내가 신청한 기록이 있는지 조회
+        Optional<TaxiUser> myRequest = taxiUserRepository.findByTaxiPartyIdAndUserId(taxiPartyId, userId);
+
+        if (myRequest.isPresent()) {
+            // 기록이 있으면 WAITING 또는 ACCEPTED 가져옴
+            myStatus = myRequest.get().getStatus().toString();
+        }
 
         // 엔티티 -> 상세 DTO 변환
         return new TaxiPartyDto.DetailResponse(
@@ -100,7 +111,8 @@ public class TaxiPartyService {
                 party.getMaxParticipants(),
                 party.getExpectedPrice(),
                 party.getContent(),
-                party.getStatus().toString()
+                party.getStatus().toString(),
+                myStatus
         );
     }
 
@@ -148,7 +160,7 @@ public class TaxiPartyService {
         return "같이 타기 요청이 완료되었습니다.";
     }
 
-    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회=
     @Transactional(readOnly = true)
     public List<TaxiUserDto.RequestResponse> getJoinRequests(Long partyId) {
         // 요청 보낸 동승슈니 조회

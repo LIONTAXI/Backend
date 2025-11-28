@@ -41,8 +41,8 @@ public class TaxiPartyController {
 
     // 택시팟 정보
     @GetMapping("/api/taxi-party/{id}")
-    public TaxiPartyDto.DetailResponse getTaxiPartyDetail(@PathVariable Long id) {
-        return taxiPartyService.getTaxiPartyDetail(id);
+    public TaxiPartyDto.DetailResponse getTaxiPartyDetail(@PathVariable Long id, @RequestParam Long userId) {
+        return taxiPartyService.getTaxiPartyDetail(id, userId);
     }
 
     // 택시팟 정보 - 동승슈니 - 같이 타기
