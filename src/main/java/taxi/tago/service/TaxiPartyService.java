@@ -6,8 +6,10 @@ import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.TaxiPartyStatus;
 import taxi.tago.dto.TaxiPartyDto;
 import taxi.tago.entity.TaxiParty;
+import taxi.tago.entity.TaxiUser;
 import taxi.tago.entity.User;
 import taxi.tago.repository.TaxiPartyRepository;
+import taxi.tago.repository.TaxiUserRepository;
 import taxi.tago.repository.UserRepository;
 
 import java.time.LocalDate;
@@ -23,6 +25,7 @@ public class TaxiPartyService {
 
     private final TaxiPartyRepository taxiPartyRepository;
     private final UserRepository userRepository;
+    private final TaxiUserRepository taxiUserRepository;
 
     // 이모지 20개 리스트
     private static final List<String> EMOJI_LIST = Arrays.asList(
@@ -119,5 +122,27 @@ public class TaxiPartyService {
 
         // 전체 이모지 리스트 중에서 랜덤 선정
         return availableEmojis.get(random.nextInt(availableEmojis.size()));
+    }
+
+    // 택시팟 정보 - 동승슈니 - 같이 타기
+    @Transactional
+    public String applyTaxiParty(Long partyId, Long userId) {
+        // 확인, 예외 처리 로직
+        TaxiParty party = taxiPartyRepository.findById(partyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다."));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+        if (party.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("해당 택시팟의 총대슈니입니다.");
+        }
+        if (taxiUserRepository.existsByTaxiPartyIdAndUserId(partyId, userId)) {
+            throw new IllegalArgumentException("이미 요청을 보낸 택시팟입니다.");
+        }
+
+        // 요청 정보 저장
+        TaxiUser taxiUser = new TaxiUser(party, user);
+        taxiUserRepository.save(taxiUser);
+
+        return "같이 타기 요청이 완료되었습니다.";
     }
 }
