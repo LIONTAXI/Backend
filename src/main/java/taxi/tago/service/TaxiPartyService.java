@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.TaxiPartyStatus;
+import taxi.tago.constant.ParticipationStatus;
 import taxi.tago.dto.TaxiPartyDto;
+import taxi.tago.dto.TaxiUserDto;
 import taxi.tago.entity.TaxiParty;
 import taxi.tago.entity.TaxiUser;
 import taxi.tago.entity.User;
@@ -144,5 +146,38 @@ public class TaxiPartyService {
         taxiUserRepository.save(taxiUser);
 
         return "같이 타기 요청이 완료되었습니다.";
+    }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
+    @Transactional(readOnly = true)
+    public List<TaxiUserDto.RequestResponse> getJoinRequests(Long partyId) {
+        // 요청 보낸 동승슈니 조회
+        List<TaxiUser> requests = taxiUserRepository.findAllByTaxiPartyId(partyId);
+
+        // DTO 변환
+        return requests.stream()
+                .map(request -> new TaxiUserDto.RequestResponse(
+                        request.getId(),
+                        request.getUser().getId(),
+                        request.getStatus()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 수락
+    @Transactional
+    public String acceptJoinRequest(Long taxiUserId) {
+        TaxiUser taxiUser = taxiUserRepository.findById(taxiUserId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 요청입니다."));
+
+        // 해당 동승슈니의 같이 타기 요청 수락
+        taxiUser.setStatus(ParticipationStatus.ACCEPTED);
+
+        // 택시팟의 현재 인원 +1
+        TaxiParty party = taxiUser.getTaxiParty();
+        party.setCurrentParticipants(party.getCurrentParticipants() + 1);
+
+        Long acceptedUserId = taxiUser.getUser().getId();
+        return "같이 타기 요청 수락 성공, 수락한 동승슈니 ID: " + acceptedUserId;
     }
 }

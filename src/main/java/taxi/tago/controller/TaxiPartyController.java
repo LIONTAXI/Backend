@@ -3,6 +3,7 @@ package taxi.tago.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.TaxiPartyDto;
+import taxi.tago.dto.TaxiUserDto;
 import taxi.tago.service.TaxiPartyService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,5 +49,17 @@ public class TaxiPartyController {
     @PostMapping("/api/taxi-party/{partyId}/participation")
     public String applyTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
         return taxiPartyService.applyTaxiParty(partyId, request.getUserId());
+    }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
+    @GetMapping("/api/taxi-party/{partyId}/requests")
+    public List<TaxiUserDto.RequestResponse> getJoinRequests(@PathVariable Long partyId) {
+        return taxiPartyService.getJoinRequests(partyId);
+    }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 수락
+    @PostMapping("/api/taxi-party/requests/{taxiUserId}/accept")
+    public String acceptJoinRequest(@PathVariable Long taxiUserId) {
+        return taxiPartyService.acceptJoinRequest(taxiUserId);
     }
 }
