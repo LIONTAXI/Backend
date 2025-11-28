@@ -62,4 +62,10 @@ public class TaxiPartyController {
     public String acceptJoinRequest(@PathVariable Long taxiUserId) {
         return taxiPartyService.acceptJoinRequest(taxiUserId);
     }
+
+    // 택시팟 상세페이지 - 총대슈니 - 매칭 종료
+    @PostMapping("/api/taxi-party/{partyId}/close")
+    public String closeTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
+        return taxiPartyService.closeTaxiParty(partyId, request.getUserId());
+    }
 }

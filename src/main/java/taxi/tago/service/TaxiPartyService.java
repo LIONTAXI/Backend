@@ -192,4 +192,22 @@ public class TaxiPartyService {
         Long acceptedUserId = taxiUser.getUser().getId();
         return "같이 타기 요청 수락 성공, 수락한 동승슈니 ID: " + acceptedUserId;
     }
+
+    // 택시팟 상세페이지 - 총대슈니 - 매칭 종료
+    @Transactional
+    public String closeTaxiParty(Long partyId, Long userId) {
+        // 매칭 종료할 택시팟 찾기
+        TaxiParty party = taxiPartyRepository.findById(partyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다."));
+
+        // 권한 확인 (총대슈니만 종료 가능)
+        if (!party.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("총대슈니만 매칭을 종료할 수 있습니다.");
+        }
+
+        // 상태 변경
+        party.setStatus(TaxiPartyStatus.FINISHED);
+
+        return "매칭이 종료되었습니다. 택시팟 ID: " + partyId;
+    }
 }
