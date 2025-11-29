@@ -39,3 +39,8 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// 파라미터 이름 정보를 바이트코드에 포함 (Spring @PathVariable, @RequestParam 사용 시 필요)
+tasks.named('compileJava') {
+	options.compilerArgs.add('-parameters')
+}

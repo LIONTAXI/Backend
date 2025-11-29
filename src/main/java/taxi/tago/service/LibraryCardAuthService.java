@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import taxi.tago.constant.AuthStatus;
 import taxi.tago.entity.LibraryCardAuth;
 import taxi.tago.entity.User;
 import taxi.tago.repository.LibraryCardAuthRepository;
@@ -12,6 +13,7 @@ import taxi.tago.repository.UserRepository;
 import taxi.tago.service.NaverOcrService.OcrResult;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -23,6 +25,7 @@ public class LibraryCardAuthService {
     private final NaverOcrService ocrService;
     private final UserRepository userRepository;
     private final LibraryCardAuthRepository libraryCardAuthRepository;
+    private final FileStorageService fileStorageService;
 
     // 서울여대 학번 패턴: 10자리 숫자 (예: 2021111222)
     private static final Pattern SWU_STUDENT_ID_PATTERN = Pattern.compile("^\\d{10}$");
@@ -234,6 +237,89 @@ public class LibraryCardAuthService {
         return name.trim().replaceAll("\\s+", "");
     }
 
+    /**
+     * 수동 인증 요청 제출 (사진, 이름, 학번을 받아서 승인 대기 상태로 저장)
+     * @param userId 사용자 ID (이메일 또는 ID)
+     * @param imageFile 이미지 파일
+     * @param name 사용자가 입력한 이름
+     * @param studentId 사용자가 입력한 학번
+     * @return 인증 요청 결과
+     */
+    @Transactional
+    public LibraryCardAuthResult submitManualAuthRequest(String userId, MultipartFile imageFile, 
+                                                         String name, String studentId) {
+        try {
+            // 1. 입력값 검증
+            if (imageFile == null || imageFile.isEmpty()) {
+                return LibraryCardAuthResult.failure("이미지를 등록해주세요.");
+            }
+
+            if (name == null || name.trim().isEmpty()) {
+                return LibraryCardAuthResult.failure("이름을 입력해주세요.");
+            }
+
+            if (studentId == null || studentId.trim().isEmpty()) {
+                return LibraryCardAuthResult.failure("학번을 입력해주세요.");
+            }
+
+            // 2. 학번 형식 검증
+            if (!isValidSwuStudentId(studentId)) {
+                return LibraryCardAuthResult.failure("서울여대 학번 형식이 아닙니다. (10자리 숫자)");
+            }
+
+            // 3. 사용자 조회
+            Optional<User> userOpt = findUserByIdentifier(userId);
+            if (userOpt.isEmpty()) {
+                return LibraryCardAuthResult.failure("사용자를 찾을 수 없습니다.");
+            }
+            User user = userOpt.get();
+
+            // 4. 이미지 파일 저장
+            String imagePath = fileStorageService.saveImageFile(imageFile);
+
+            // 5. 승인 대기 상태로 인증 요청 저장
+            LibraryCardAuth auth = new LibraryCardAuth();
+            auth.setUser(user);
+            auth.setExtractedName(name.trim());
+            auth.setExtractedStudentId(studentId.trim());
+            auth.setImagePath(imagePath);
+            auth.setStatus(AuthStatus.PENDING);
+            auth.setIsSuccess(false); // 아직 승인되지 않음
+            libraryCardAuthRepository.save(auth);
+
+            log.info("수동 인증 요청 제출: userId={}, name={}, studentId={}", userId, name, studentId);
+
+            return LibraryCardAuthResult.success(
+                "인증 요청이 제출되었습니다. 관리자 승인을 기다려주세요.",
+                name, studentId
+            );
+
+        } catch (IOException e) {
+            log.error("이미지 파일 저장 오류", e);
+            return LibraryCardAuthResult.failure("이미지 파일 저장 중 오류가 발생했습니다.");
+        } catch (Exception e) {
+            log.error("수동 인증 요청 제출 중 오류 발생", e);
+            return LibraryCardAuthResult.failure("인증 요청 제출 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 승인 대기 중인 모든 인증 요청 목록 조회
+     * @return 승인 대기 중인 인증 요청 목록
+     */
+    public List<LibraryCardAuth> getPendingAuthRequests() {
+        return libraryCardAuthRepository.findByStatusOrderByCreatedAtDesc(AuthStatus.PENDING);
+    }
+
+    /**
+     * 특정 인증 요청 상세 조회
+     * @param authId 인증 요청 ID
+     * @return 인증 요청 정보
+     */
+    public Optional<LibraryCardAuth> getAuthRequestById(Long authId) {
+        return libraryCardAuthRepository.findById(authId);
+    }
+
     //인증 기록 생성
     private LibraryCardAuth createAuthRecord(User user, String extractedName, String extractedStudentId, 
                                             boolean isSuccess, String failureReason) {
@@ -243,6 +329,7 @@ public class LibraryCardAuthService {
         auth.setExtractedStudentId(extractedStudentId);
         auth.setIsSuccess(isSuccess);
         auth.setFailureReason(failureReason);
+        auth.setStatus(isSuccess ? AuthStatus.APPROVED : AuthStatus.REJECTED);
         return auth;
     }
 
