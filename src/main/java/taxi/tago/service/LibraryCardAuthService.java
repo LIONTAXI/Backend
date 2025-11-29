@@ -13,6 +13,7 @@ import taxi.tago.repository.UserRepository;
 import taxi.tago.service.NaverOcrService.OcrResult;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -26,6 +27,7 @@ public class LibraryCardAuthService {
     private final UserRepository userRepository;
     private final LibraryCardAuthRepository libraryCardAuthRepository;
     private final FileStorageService fileStorageService;
+    private final EmailAuthService emailAuthService;
 
     // 서울여대 학번 패턴: 10자리 숫자 (예: 2021111222)
     private static final Pattern SWU_STUDENT_ID_PATTERN = Pattern.compile("^\\d{10}$");
@@ -303,21 +305,113 @@ public class LibraryCardAuthService {
         }
     }
 
-    /**
-     * 승인 대기 중인 모든 인증 요청 목록 조회
-     * @return 승인 대기 중인 인증 요청 목록
-     */
+    // 승인 대기 중인 모든 인증 요청 목록 조회
     public List<LibraryCardAuth> getPendingAuthRequests() {
         return libraryCardAuthRepository.findByStatusOrderByCreatedAtDesc(AuthStatus.PENDING);
     }
 
-    /**
-     * 특정 인증 요청 상세 조회
-     * @param authId 인증 요청 ID
-     * @return 인증 요청 정보
-     */
+    // 특정 인증 요청 상세 조회
     public Optional<LibraryCardAuth> getAuthRequestById(Long authId) {
         return libraryCardAuthRepository.findById(authId);
+    }
+
+    /**
+     * 인증 요청 승인/반려 처리
+     * @param authId 인증 요청 ID
+     * @param isApproved true: 승인, false: 반려
+     * @param rejectionReason 반려 사유 (반려 시 필수)
+     * @return 처리 결과
+     */
+    @Transactional
+    public LibraryCardAuthResult processApproval(Long authId, boolean isApproved, String rejectionReason) {
+        try {
+            // 1. 인증 요청 조회
+            Optional<LibraryCardAuth> authOpt = libraryCardAuthRepository.findById(authId);
+            if (authOpt.isEmpty()) {
+                return LibraryCardAuthResult.failure("인증 요청을 찾을 수 없습니다.");
+            }
+            LibraryCardAuth auth = authOpt.get();
+
+            // 2. 이미 처리된 요청인지 확인
+            if (auth.getStatus() != AuthStatus.PENDING) {
+                return LibraryCardAuthResult.failure("이미 처리된 인증 요청입니다.");
+            }
+
+            // 3. 반려 시 반려 사유 검증
+            if (!isApproved) {
+                if (rejectionReason == null || rejectionReason.trim().isEmpty()) {
+                    return LibraryCardAuthResult.failure("반려 사유를 입력해주세요.");
+                }
+                
+                // 반려 사유가 유효한지 확인 (3가지 중 하나)
+                List<String> validReasons = List.of(
+                    "이미지와 입력 정보 불일치",
+                    "이미지 정보 미포함",
+                    "이미지 부정확"
+                );
+                if (!validReasons.contains(rejectionReason)) {
+                    return LibraryCardAuthResult.failure("유효하지 않은 반려 사유입니다.");
+                }
+            }
+
+            // 4. 승인 처리
+            if (isApproved) {
+                auth.setStatus(AuthStatus.APPROVED);
+                auth.setIsSuccess(true);
+                auth.setFailureReason(null);
+                auth.setReviewedAt(LocalDateTime.now());
+                
+                // 사용자 정보 업데이트 (2차 회원가입 완료 처리)
+                User user = auth.getUser();
+                if (auth.getExtractedStudentId() != null) {
+                    user.setStudentId(auth.getExtractedStudentId());
+                }
+                if (auth.getExtractedName() != null) {
+                    user.setName(auth.getExtractedName());
+                }
+                userRepository.save(user);
+                
+                log.info("인증 요청 승인 완료: authId={}, userId={}", authId, user.getId());
+                
+                return LibraryCardAuthResult.success(
+                    "인증 요청이 승인되었습니다.",
+                    auth.getExtractedName(),
+                    auth.getExtractedStudentId()
+                );
+            } 
+            // 5. 반려 처리
+            else {
+                auth.setStatus(AuthStatus.REJECTED);
+                auth.setIsSuccess(false);
+                auth.setFailureReason(rejectionReason);
+                auth.setReviewedAt(LocalDateTime.now());
+                libraryCardAuthRepository.save(auth);
+                
+                // 반려 메일 전송 (1차 회원가입 시 사용한 웹메일로)
+                User user = auth.getUser();
+                String userEmail = user.getEmail();
+                emailAuthService.sendRejectionEmail(userEmail, rejectionReason);
+                
+                log.info("인증 요청 반려 완료: authId={}, userId={}, reason={}", 
+                    authId, user.getId(), rejectionReason);
+                
+                return LibraryCardAuthResult.failure("인증 요청이 반려되었습니다.");
+            }
+
+        } catch (Exception e) {
+            log.error("인증 요청 승인/반려 처리 중 오류 발생", e);
+            return LibraryCardAuthResult.failure("처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    // 승인된 인증 요청 목록 조회
+    public List<LibraryCardAuth> getApprovedAuthRequests() {
+        return libraryCardAuthRepository.findByStatusOrderByCreatedAtDesc(AuthStatus.APPROVED);
+    }
+
+    // 반려된 인증 요청 목록 조회
+    public List<LibraryCardAuth> getRejectedAuthRequests() {
+        return libraryCardAuthRepository.findByStatusOrderByCreatedAtDesc(AuthStatus.REJECTED);
     }
 
     //인증 기록 생성
