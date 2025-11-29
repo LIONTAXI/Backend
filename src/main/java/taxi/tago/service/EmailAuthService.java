@@ -34,6 +34,9 @@ public class EmailAuthService {
     // 비밀번호 변경용 인증 코드 저장 (회원가입용과 분리)
     private final Map<String, AuthCodeInfo> passwordResetCodeStorage = new ConcurrentHashMap<>();
 
+    // 비밀번호 변경용 인증 완료된 이메일 추적
+    private final Map<String, Boolean> passwordResetVerifiedEmails = new ConcurrentHashMap<>();
+
     // 서울여대 웹메일 도메인 검증
     private static final String SWU_EMAIL_DOMAIN = "@swu.ac.kr";
 
@@ -144,8 +147,9 @@ public class EmailAuthService {
         // 코드 일치 확인
         boolean isValid = authCodeInfo.getCode().equals(code);
         if (isValid) {
-            // 인증 성공 시 저장소에서 제거
+            // 인증 성공 시 저장소에서 제거하고 인증 완료 상태 저장
             passwordResetCodeStorage.remove(email);
+            passwordResetVerifiedEmails.put(email, true);
             log.info("비밀번호 변경용 인증 코드 검증 성공: {}", email);
         } else {
             log.warn("비밀번호 변경용 인증 코드 불일치: {}", email);
@@ -162,6 +166,16 @@ public class EmailAuthService {
         // 새 코드 생성 및 전송
         sendPasswordResetCode(email);
         log.info("비밀번호 변경용 인증 코드 재전송 완료: {}", email);
+    }
+
+    // 비밀번호 변경용 인증 완료 여부 확인
+    public boolean isPasswordResetVerified(String email) {
+        return passwordResetVerifiedEmails.getOrDefault(email, false);
+    }
+
+    // 비밀번호 변경용 인증 상태 제거 (비밀번호 변경 완료 후)
+    public void removePasswordResetVerifiedEmail(String email) {
+        passwordResetVerifiedEmails.remove(email);
     }
 
     // 서울여대 웹메일인지 확인
