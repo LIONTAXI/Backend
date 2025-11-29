@@ -33,4 +33,10 @@ public class User {
     private Double latitude; // 현재 위도
     private Double longitude; // 현재 경도
     private LocalDateTime lastActiveAt; // 마지막으로 접속해서 활동한 시간
+    
+    @Column(length = 20)
+    private String studentId; // 학번 (도서관 전자출입증 인증용)
+    
+    @Column(length = 50)
+    private String name; // 이름 (도서관 전자출입증 인증용)
 }
