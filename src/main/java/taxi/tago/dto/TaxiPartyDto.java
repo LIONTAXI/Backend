@@ -55,7 +55,7 @@ public class TaxiPartyDto {
     @Getter
     @AllArgsConstructor
     public static class DetailResponse {
-        private Long id;                 // 방 ID
+        private Long id;                 // 택시팟 ID
         private Long hostId;             // 총대슈니 ID
         private String departure;        // 승차지
         private String destination;      // 하차지
@@ -69,5 +69,20 @@ public class TaxiPartyDto {
         private String content;              // 추가 설명
         private String status;               // 매칭 상태
         private String participationStatus;  // 나의 참여상태(NONE, WAITING, ACCEPTED)
+    }
+
+    @Getter
+    @NoArgsConstructor
+    public static class UpdateRequest {
+        private Long userId;
+        private String departure;       // 승차지
+        private String destination;     // 하차지
+
+        @JsonFormat(pattern = "HH:mm")
+        private LocalTime meetingTime;  // 마감 시각
+
+        private Integer maxParticipants;// 모집 인원
+        private Integer expectedPrice;  // 예상 가격
+        private String content;         // 추가 설명
     }
 }

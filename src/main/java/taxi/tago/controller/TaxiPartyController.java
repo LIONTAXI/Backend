@@ -98,4 +98,14 @@ public class TaxiPartyController {
     public String deleteTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
         return taxiPartyService.deleteTaxiParty(partyId, request.getUserId());
     }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 수정
+    @PutMapping("/api/taxi-party/{partyId}")
+    @Operation(
+            summary = "총대슈니 - 택시팟 수정",
+            description = "총대슈니가 본인의 택시팟 게시물을 수정합니다."
+    )
+    public String updateTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.UpdateRequest dto) {
+        return taxiPartyService.updateTaxiParty(partyId, dto);
+    }
 }

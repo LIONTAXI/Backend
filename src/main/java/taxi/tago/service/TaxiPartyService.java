@@ -236,4 +236,28 @@ public class TaxiPartyService {
 
         return "택시팟 삭제가 완료되었습니다. ID: " + partyId;
     }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 수정
+    @Transactional
+    public String updateTaxiParty(Long partyId, TaxiPartyDto.UpdateRequest dto) {
+        TaxiParty party = taxiPartyRepository.findById(partyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다. id=" + partyId));
+
+        if (!party.getUser().getId().equals(dto.getUserId())) {
+            throw new IllegalArgumentException("총대슈니만 수정할 수 있습니다.");
+        }
+
+
+        LocalDateTime meetingDateTime = LocalDateTime.of(LocalDate.now(), dto.getMeetingTime());
+
+        // 데이터 업데이트
+        party.setDeparture(dto.getDeparture());
+        party.setDestination(dto.getDestination());
+        party.setMeetingTime(meetingDateTime);
+        party.setMaxParticipants(dto.getMaxParticipants());
+        party.setExpectedPrice(dto.getExpectedPrice());
+        party.setContent(dto.getContent());
+
+        return "수정이 완료되었습니다. ID: " + partyId;
+    }
 }
