@@ -8,6 +8,7 @@ import taxi.tago.dto.EmailAuthRequest;
 import taxi.tago.dto.EmailAuthResponse;
 import taxi.tago.dto.LoginRequest;
 import taxi.tago.dto.LoginResponse;
+import taxi.tago.dto.PasswordResetRequest;
 import taxi.tago.dto.UserMapDto;
 import taxi.tago.service.UserMapService;
 import taxi.tago.service.UserService;
@@ -166,6 +167,58 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "인증 코드 검증 중 오류가 발생했습니다: " + e.getMessage(),
+                    request.getEmail()
+            ));
+        }
+    }
+
+    // 비밀번호 변경
+    @PostMapping("/api/password-reset/change")
+    public ResponseEntity<EmailAuthResponse> changePassword(@RequestBody PasswordResetRequest request) {
+        try {
+            // 입력값 검증
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "이메일을 입력해주세요.",
+                        null
+                ));
+            }
+
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "비밀번호를 입력해주세요.",
+                        request.getEmail()
+                ));
+            }
+
+            if (request.getConfirmPassword() == null || request.getConfirmPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "비밀번호 확인을 입력해주세요.",
+                        request.getEmail()
+                ));
+            }
+
+            // 비밀번호 변경 처리
+            authUserService.changePassword(request.getEmail(), request.getPassword(), request.getConfirmPassword());
+
+            return ResponseEntity.ok(new EmailAuthResponse(
+                    true,
+                    "비밀번호가 성공적으로 변경되었습니다.",
+                    request.getEmail()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                    false,
+                    e.getMessage(),
+                    request.getEmail()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
+                    false,
+                    "비밀번호 변경 중 오류가 발생했습니다: " + e.getMessage(),
                     request.getEmail()
             ));
         }

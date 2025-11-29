@@ -133,4 +133,45 @@ public class UserService {
         
         return isValid;
     }
+
+    /**
+     * 비밀번호 변경 처리
+     * @param email 로그인된 사용자의 웹메일 주소
+     * @param newPassword 새로운 비밀번호
+     * @param confirmPassword 비밀번호 확인
+     * @throws IllegalArgumentException 유효성 검증 실패 시
+     */
+    @Transactional
+    public void changePassword(String email, String newPassword, String confirmPassword) {
+        // 1. 사용자 존재 여부 확인
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 2. 비밀번호 변경용 인증 완료 여부 확인
+        if (!emailAuthService.isPasswordResetVerified(email)) {
+            throw new IllegalArgumentException("인증이 완료되지 않았습니다. 먼저 이메일 인증을 완료해주세요.");
+        }
+
+        // 3. 비밀번호 유효성 검증
+        String passwordError = PasswordValidator.validate(newPassword);
+        if (passwordError != null) {
+            throw new IllegalArgumentException(passwordError);
+        }
+
+        // 4. 비밀번호 일치 확인
+        if (!PasswordValidator.matches(newPassword, confirmPassword)) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 5. 비밀번호 암호화 및 업데이트
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+        user.setLastActiveAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // 6. 인증 완료 상태 제거 (이미 사용됨)
+        emailAuthService.removePasswordResetVerifiedEmail(email);
+
+        log.info("비밀번호 변경 완료: {}", email);
+    }
 }
