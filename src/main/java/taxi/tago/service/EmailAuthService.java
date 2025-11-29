@@ -28,6 +28,9 @@ public class EmailAuthService {
     // 이메일별 인증 코드 저장 (실제 운영 환경에서는 Redis 등을 사용 권장)
     private final Map<String, AuthCodeInfo> authCodeStorage = new ConcurrentHashMap<>();
 
+    // 인증 완료된 이메일 추적 (비밀번호 설정 단계를 위해)
+    private final Map<String, Boolean> verifiedEmails = new ConcurrentHashMap<>();
+
     // 서울여대 웹메일 도메인 검증
     private static final String SWU_EMAIL_DOMAIN = "@swu.ac.kr";
 
@@ -69,8 +72,9 @@ public class EmailAuthService {
         // 코드 일치 확인
         boolean isValid = authCodeInfo.getCode().equals(code);
         if (isValid) {
-            // 인증 성공 시 저장소에서 제거
+            // 인증 성공 시 저장소에서 제거하고 인증 완료 상태 저장
             authCodeStorage.remove(email);
+            verifiedEmails.put(email, true);
             log.info("인증 코드 검증 성공: {}", email);
         } else {
             log.warn("인증 코드 불일치: {}", email);
@@ -87,6 +91,16 @@ public class EmailAuthService {
         // 새 코드 생성 및 전송
         sendAuthCode(email);
         log.info("인증 코드 재전송 완료: {}", email);
+    }
+
+    // 이메일 인증 완료 여부 확인
+    public boolean isEmailVerified(String email) {
+        return verifiedEmails.getOrDefault(email, false);
+    }
+
+    // 이메일 인증 상태 제거 (회원가입 완료 후 또는 만료 시)
+    public void removeVerifiedEmail(String email) {
+        verifiedEmails.remove(email);
     }
 
     // 서울여대 웹메일인지 확인

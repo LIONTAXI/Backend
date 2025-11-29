@@ -6,7 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.EmailAuthRequest;
 import taxi.tago.dto.EmailAuthResponse;
+import taxi.tago.dto.PasswordSetRequest;
 import taxi.tago.service.EmailAuthService;
+import taxi.tago.service.UserService;
 
 @RestController
 @RequestMapping("/api/auth/email")
@@ -14,16 +16,9 @@ import taxi.tago.service.EmailAuthService;
 public class EmailAuthController {
 
     private final EmailAuthService emailAuthService;
+    private final UserService userService;
 
-    /**
-     * 1.1 회원가입 1차 인증 - 인증 코드 전송
-     * POST /api/auth/email/send
-     * 
-     * Request Body:
-     * {
-     *   "email": "student@swu.ac.kr"
-     * }
-     */
+    // 인증 코드 전송
     @PostMapping("/send")
     public ResponseEntity<EmailAuthResponse> sendAuthCode(@RequestBody EmailAuthRequest request) {
         try {
@@ -48,30 +43,7 @@ public class EmailAuthController {
         }
     }
 
-    /**
-     * 인증 코드 검증
-     * POST /api/auth/email/verify
-     * 
-     * Request Body:
-     * {
-     *   "email": "student@swu.ac.kr",
-     *   "code": "123456"
-     * }
-     * 
-     * Response (성공 시):
-     * {
-     *   "success": true,
-     *   "message": "인증이 완료되었습니다. 비밀번호를 설정해주세요.",
-     *   "email": "student@swu.ac.kr"
-     * }
-     * 
-     * Response (실패 시):
-     * {
-     *   "success": false,
-     *   "message": "인증 코드가 일치하지 않습니다.",
-     *   "email": "student@swu.ac.kr"
-     * }
-     */
+// 인증 코드 검증
     @PostMapping("/verify")
     public ResponseEntity<EmailAuthResponse> verifyAuthCode(@RequestBody EmailAuthRequest request) {
         try {
@@ -126,15 +98,7 @@ public class EmailAuthController {
         }
     }
 
-    /**
-     * 인증 코드 재전송 (코드 초기화 후 재전송)
-     * POST /api/auth/email/resend
-     * 
-     * Request Body:
-     * {
-     *   "email": "student@swu.ac.kr"
-     * }
-     */
+    //인증 코드 재전송 (코드 초기화 후 재전송)
     @PostMapping("/resend")
     public ResponseEntity<EmailAuthResponse> resendAuthCode(@RequestBody EmailAuthRequest request) {
         try {
@@ -154,6 +118,58 @@ public class EmailAuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "인증 코드 재전송에 실패했습니다: " + e.getMessage(),
+                    request.getEmail()
+            ));
+        }
+    }
+
+    // 비밀번호 설정
+    @PostMapping("/set-password")
+    public ResponseEntity<EmailAuthResponse> setPassword(@RequestBody PasswordSetRequest request) {
+        try {
+            // 입력값 검증
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "이메일을 입력해주세요.",
+                        null
+                ));
+            }
+
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "비밀번호를 입력해주세요.",
+                        request.getEmail()
+                ));
+            }
+
+            if (request.getConfirmPassword() == null || request.getConfirmPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "비밀번호 확인을 입력해주세요.",
+                        request.getEmail()
+                ));
+            }
+
+            // 회원가입 처리
+            userService.register(request.getEmail(), request.getPassword(), request.getConfirmPassword());
+
+            return ResponseEntity.ok(new EmailAuthResponse(
+                    true,
+                    "회원가입이 완료되었습니다.",
+                    request.getEmail()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                    false,
+                    e.getMessage(),
+                    request.getEmail()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
+                    false,
+                    "회원가입에 실패했습니다: " + e.getMessage(),
                     request.getEmail()
             ));
         }

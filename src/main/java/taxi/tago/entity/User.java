@@ -17,9 +17,13 @@ public class User {
     @Column(name = "user_id")
     private Long id;
 
+    @Column(nullable = false, unique = true, length = 100)
+    private String email; // 웹메일 (아이디로 사용)
+
+    @Column(nullable = false, length = 255)
+    private String password; // 비밀번호 (암호화된 값)
 
     // 추가 작성
-
 
     private Double latitude; // 현재 위도
     private Double longitude; // 현재 경도
