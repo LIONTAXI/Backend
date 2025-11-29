@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import taxi.tago.constant.UserRole;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,6 +23,10 @@ public class User {
 
     @Column(nullable = false, length = 255)
     private String password; // 비밀번호 (암호화된 값)
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role = UserRole.USER; // 사용자 역할 (ADMIN, USER)
 
     // 추가 작성
 
