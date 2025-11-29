@@ -92,4 +92,45 @@ public class UserService {
         log.info("사용자 로그인 성공: {}", email);
         return user;
     }
+
+    /**
+     * 비밀번호 변경을 위한 인증코드 발송
+     * @param email 로그인된 사용자의 웹메일 주소
+     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우
+     */
+    public void sendPasswordResetCode(String email) {
+        // 1. 사용자 존재 여부 확인
+        if (!userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        }
+
+        // 2. 인증코드 발송
+        emailAuthService.sendPasswordResetCode(email);
+        
+        log.info("비밀번호 변경용 인증코드 발송 완료: {}", email);
+    }
+
+    /**
+     * 비밀번호 변경을 위한 인증코드 검증
+     * @param email 로그인된 사용자의 웹메일 주소
+     * @param code 입력한 인증코드
+     * @return 인증코드 일치 여부 (true: 일치, false: 불일치)
+     */
+    public boolean verifyPasswordResetCode(String email, String code) {
+        // 1. 사용자 존재 여부 확인
+        if (!userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        }
+
+        // 2. 인증코드 검증
+        boolean isValid = emailAuthService.verifyPasswordResetCode(email, code);
+        
+        if (isValid) {
+            log.info("비밀번호 변경용 인증코드 검증 성공: {}", email);
+        } else {
+            log.warn("비밀번호 변경용 인증코드 검증 실패: {}", email);
+        }
+        
+        return isValid;
+    }
 }
