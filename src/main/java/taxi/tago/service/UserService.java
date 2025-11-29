@@ -66,4 +66,30 @@ public class UserService {
         
         log.info("회원가입 완료: {}", email);
     }
+
+    /**
+     * 사용자 로그인 처리
+     * @param email 웹메일 (아이디)
+     * @param password 비밀번호
+     * @return 로그인 성공 시 User 객체
+     * @throws IllegalArgumentException 로그인 실패 시
+     */
+    @Transactional
+    public User login(String email, String password) {
+        // 1. 이메일로 사용자 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호를 다시 확인해주세요."));
+
+        // 2. 비밀번호 확인
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("아이디 또는 비밀번호를 다시 확인해주세요.");
+        }
+
+        // 3. 마지막 활동 시간 업데이트
+        user.setLastActiveAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        log.info("사용자 로그인 성공: {}", email);
+        return user;
+    }
 }
