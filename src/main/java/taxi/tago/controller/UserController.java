@@ -172,6 +172,42 @@ public class UserController {
         }
     }
 
+    // 비밀번호 변경용 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
+    @PostMapping("/api/password-reset/resend-code")
+    public ResponseEntity<EmailAuthResponse> resendPasswordResetCode(@RequestBody EmailAuthRequest request) {
+        try {
+            // 입력값 검증
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "이메일을 입력해주세요.",
+                        null
+                ));
+            }
+
+            // 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
+            authUserService.resendPasswordResetCode(request.getEmail());
+
+            return ResponseEntity.ok(new EmailAuthResponse(
+                    true,
+                    "인증 코드가 재전송되었습니다. (기존 코드는 초기화되었습니다.)",
+                    request.getEmail()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                    false,
+                    e.getMessage(),
+                    request.getEmail()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
+                    false,
+                    "인증 코드 재전송에 실패했습니다: " + e.getMessage(),
+                    request.getEmail()
+            ));
+        }
+    }
+
     // 비밀번호 변경
     @PostMapping("/api/password-reset/change")
     public ResponseEntity<EmailAuthResponse> changePassword(@RequestBody PasswordResetRequest request) {

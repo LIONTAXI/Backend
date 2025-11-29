@@ -135,6 +135,23 @@ public class UserService {
     }
 
     /**
+     * 비밀번호 변경을 위한 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
+     * @param email 로그인된 사용자의 웹메일 주소
+     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우
+     */
+    public void resendPasswordResetCode(String email) {
+        // 1. 사용자 존재 여부 확인
+        if (!userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        }
+
+        // 2. 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
+        emailAuthService.resendPasswordResetCode(email);
+        
+        log.info("비밀번호 변경용 인증코드 재전송 완료: {}", email);
+    }
+
+    /**
      * 비밀번호 변경 처리
      * @param email 로그인된 사용자의 웹메일 주소
      * @param newPassword 새로운 비밀번호
