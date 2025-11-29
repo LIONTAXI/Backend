@@ -31,6 +31,9 @@ public class EmailAuthService {
     // 인증 완료된 이메일 추적 (비밀번호 설정 단계를 위해)
     private final Map<String, Boolean> verifiedEmails = new ConcurrentHashMap<>();
 
+    // 비밀번호 변경용 인증 코드 저장 (회원가입용과 분리)
+    private final Map<String, AuthCodeInfo> passwordResetCodeStorage = new ConcurrentHashMap<>();
+
     // 서울여대 웹메일 도메인 검증
     private static final String SWU_EMAIL_DOMAIN = "@swu.ac.kr";
 
@@ -103,6 +106,64 @@ public class EmailAuthService {
         verifiedEmails.remove(email);
     }
 
+    // 비밀번호 변경용 인증 코드 생성 및 이메일 전송
+    public void sendPasswordResetCode(String email) {
+        // 서울여대 웹메일 검증
+        if (!isSwuEmail(email)) {
+            throw new IllegalArgumentException("서울여대 웹메일(@swu.ac.kr)만 사용 가능합니다.");
+        }
+
+        // 6자리 인증 코드 생성
+        String authCode = generateAuthCode();
+
+        // 기존 코드가 있으면 초기화 (재전송 시)
+        passwordResetCodeStorage.put(email, new AuthCodeInfo(authCode, LocalDateTime.now()));
+
+        // 이메일 전송
+        sendPasswordResetEmail(email, authCode);
+
+        log.info("비밀번호 변경용 인증 코드 전송 완료: {}", email);
+    }
+
+    // 비밀번호 변경용 인증 코드 검증
+    public boolean verifyPasswordResetCode(String email, String code) {
+        AuthCodeInfo authCodeInfo = passwordResetCodeStorage.get(email);
+
+        if (authCodeInfo == null) {
+            log.warn("비밀번호 변경용 인증 코드가 존재하지 않음: {}", email);
+            return false;
+        }
+
+        // 만료 시간 확인
+        if (authCodeInfo.isExpired(expirationMinutes)) {
+            log.warn("비밀번호 변경용 인증 코드 만료: {}", email);
+            passwordResetCodeStorage.remove(email);
+            return false;
+        }
+
+        // 코드 일치 확인
+        boolean isValid = authCodeInfo.getCode().equals(code);
+        if (isValid) {
+            // 인증 성공 시 저장소에서 제거
+            passwordResetCodeStorage.remove(email);
+            log.info("비밀번호 변경용 인증 코드 검증 성공: {}", email);
+        } else {
+            log.warn("비밀번호 변경용 인증 코드 불일치: {}", email);
+        }
+
+        return isValid;
+    }
+
+    // 비밀번호 변경용 인증 코드 재전송
+    public void resendPasswordResetCode(String email) {
+        // 기존 코드 제거 (초기화)
+        passwordResetCodeStorage.remove(email);
+        
+        // 새 코드 생성 및 전송
+        sendPasswordResetCode(email);
+        log.info("비밀번호 변경용 인증 코드 재전송 완료: {}", email);
+    }
+
     // 서울여대 웹메일인지 확인
     private boolean isSwuEmail(String email) {
         return email != null && email.toLowerCase().endsWith(SWU_EMAIL_DOMAIN);
@@ -143,6 +204,35 @@ public class EmailAuthService {
         } catch (Exception e) {
             // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
             log.warn("이메일 전송 실패 (로컬 테스트 모드): {} - 인증 코드는 위 로그에서 확인하세요", to);
+            log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
+        }
+    }
+
+    // 비밀번호 변경용 이메일 전송
+    private void sendPasswordResetEmail(String to, String authCode) {
+        try {
+            // 로컬 테스트용: 콘솔에 인증 코드 출력
+            log.info("========================================");
+            log.info("비밀번호 변경용 인증 코드 전송");
+            log.info("받는 사람: {}", to);
+            log.info("인증 코드: {}", authCode);
+            log.info("유효 시간: {}분", expirationMinutes);
+            log.info("========================================");
+            
+            // 실제 이메일 전송 (Gmail 설정이 되어 있을 경우)
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject("[슈슝] 비밀번호 재설정 인증 코드");
+            message.setText("안녕하세요.\n\n" +
+                    "비밀번호 재설정을 위한 인증 코드입니다.\n\n" +
+                    "인증 코드: " + authCode + "\n\n" +
+                    "이 코드는 " + expirationMinutes + "분간 유효합니다.\n\n" +
+                    "본인이 요청한 것이 아니라면 무시하셔도 됩니다.");
+            mailSender.send(message);
+            log.info("비밀번호 변경용 이메일 전송 성공: {}", to);
+        } catch (Exception e) {
+            // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
+            log.warn("비밀번호 변경용 이메일 전송 실패 (로컬 테스트 모드): {} - 인증 코드는 위 로그에서 확인하세요", to);
             log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
         }
     }
