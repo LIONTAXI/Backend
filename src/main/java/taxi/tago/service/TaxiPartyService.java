@@ -210,4 +210,30 @@ public class TaxiPartyService {
 
         return "매칭이 종료되었습니다. 택시팟 ID: " + partyId;
     }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 삭제
+    @Transactional
+    public String deleteTaxiParty(Long partyId, Long userId) {
+        TaxiParty party = taxiPartyRepository.findById(partyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다."));
+
+        // 해당 택시팟의 총대슈니만 삭제 가능
+        if (!party.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("총대슈니만 삭제할 수 있습니다.");
+        }
+
+        // 총대슈니 이외의 동승슈니가 1명이라도 있으면 삭제 불가
+        if (party.getCurrentParticipants() >= 2) {
+            throw new IllegalArgumentException("동승슈니가 있어 삭제할 수 없습니다.");
+        }
+
+        // 해당 택시팟의 모든 요청 내역 삭제 (외래키 제약조건 에러 방지)
+        List<TaxiUser> requests = taxiUserRepository.findAllByTaxiPartyId(partyId);
+        taxiUserRepository.deleteAll(requests);
+
+        // 택시팟 삭제
+        taxiPartyRepository.delete(party);
+
+        return "택시팟 삭제가 완료되었습니다. ID: " + partyId;
+    }
 }

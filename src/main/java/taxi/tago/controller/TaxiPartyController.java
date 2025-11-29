@@ -88,4 +88,14 @@ public class TaxiPartyController {
     public String closeTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
         return taxiPartyService.closeTaxiParty(partyId, request.getUserId());
     }
+
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 삭제
+    @DeleteMapping("/api/taxi-party/{partyId}")
+    @Operation(
+            summary = "총대슈니 - 택시팟 삭제",
+            description = "총대슈니가 택시팟을 삭제합니다. 해당 택시팟에 동승슈니가 없을 때만 삭제할 수 있습니다."
+    )
+    public String deleteTaxiParty(@PathVariable Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
+        return taxiPartyService.deleteTaxiParty(partyId, request.getUserId());
+    }
 }
