@@ -9,6 +9,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ApproveRequestDto {
     private Long authId;
-    private String reason; // 거부 사유 (거부 시에만 사용)
+    private Boolean isApproved; // true: 승인, false: 반려
+    private String rejectionReason; // 반려 사유 (반려 시 필수, 3가지 중 하나: "이미지와 입력 정보 불일치", "이미지 정보 미포함", "이미지 부정확")
 }
 

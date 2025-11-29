@@ -132,7 +132,7 @@ public class EmailAuthService {
             // 실제 이메일 전송 (Gmail 설정이 되어 있을 경우)
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(to);
-            message.setSubject("[타고] 회원가입 인증 코드");
+            message.setSubject("[슈슝] 회원가입 인증 코드");
             message.setText("안녕하세요.\n\n" +
                     "회원가입을 위한 인증 코드입니다.\n\n" +
                     "인증 코드: " + authCode + "\n\n" +
@@ -143,6 +143,33 @@ public class EmailAuthService {
         } catch (Exception e) {
             // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
             log.warn("이메일 전송 실패 (로컬 테스트 모드): {} - 인증 코드는 위 로그에서 확인하세요", to);
+            log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
+        }
+    }
+
+    // 인증 반려 메일 전송
+    public void sendRejectionEmail(String email, String rejectionReason) {
+        try {
+            // 로컬 테스트용: 콘솔에 반려 메일 내용 출력
+            log.info("========================================");
+            log.info("인증 반려 메일 전송");
+            log.info("받는 사람: {}", email);
+            log.info("반려 사유: {}", rejectionReason);
+            log.info("========================================");
+            
+            // 실제 이메일 전송 (Gmail 설정이 되어 있을 경우)
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject("[슈슝] 도서관 전자출입증 인증 반려 안내");
+            message.setText("안녕하세요.\n\n" +
+                    "도서관 전자출입증 인증 요청이 반려되었습니다.\n\n" +
+                    "반려 사유: " + rejectionReason + "\n\n" +
+                    "다시 인증을 시도해주시기 바랍니다.\n\n");
+            mailSender.send(message);
+            log.info("반려 메일 전송 성공: {}", email);
+        } catch (Exception e) {
+            // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
+            log.warn("반려 메일 전송 실패 (로컬 테스트 모드): {} - 반려 사유는 위 로그에서 확인하세요", email);
             log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
         }
     }
