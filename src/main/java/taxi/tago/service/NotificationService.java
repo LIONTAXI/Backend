@@ -13,6 +13,7 @@ import taxi.tago.entity.Notification;
 import taxi.tago.entity.User;
 import taxi.tago.repository.NotificationRepository;
 import taxi.tago.repository.UserRepository;
+import taxi.tago.util.SseEmitters;
 
 /**
  * 알림 서비스
@@ -31,6 +32,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final SseEmitters sseEmitters;
 
     /**
      * 알림 목록 조회
@@ -110,7 +112,11 @@ public class NotificationService {
                 settlementId
         );
 
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        
+        // SSE로 실시간 알림 전송
+        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        
         log.info("정산요청 알림 생성: receiverId={}, settlementId={}", receiverId, settlementId);
     }
 
@@ -137,7 +143,11 @@ public class NotificationService {
                 settlementId
         );
 
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        
+        // SSE로 실시간 알림 전송
+        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        
         log.info("정산 재촉 알림 생성: receiverId={}, settlementId={}, requesterName={}", 
                 receiverId, settlementId, requesterName);
     }
@@ -164,7 +174,11 @@ public class NotificationService {
                 reviewId
         );
 
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        
+        // SSE로 실시간 알림 전송
+        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        
         log.info("후기 도착 알림 생성: receiverId={}, reviewId={}", receiverId, reviewId);
     }
 
@@ -191,7 +205,11 @@ public class NotificationService {
                 roomId
         );
 
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        
+        // SSE로 실시간 알림 전송
+        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        
         log.info("택시팟 참여 수락 알림 생성: receiverId={}, roomId={}, hostName={}", 
                 receiverId, roomId, hostName);
     }
