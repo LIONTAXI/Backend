@@ -4,11 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import taxi.tago.dto.EmailAuthRequest;
-import taxi.tago.dto.EmailAuthResponse;
-import taxi.tago.dto.PasswordSetRequest;
+import taxi.tago.dto.Email.EmailAuthRequest;
+import taxi.tago.dto.Email.EmailAuthResponse;
+import taxi.tago.dto.Password.PasswordSetRequest;
 import taxi.tago.service.EmailAuthService;
-import taxi.tago.service.UserService;
+import taxi.tago.service.User.UserService;
 
 @RestController
 @RequestMapping("/api/auth/email")

@@ -1,4 +1,4 @@
-package taxi.tago.dto;
+package taxi.tago.dto.Email;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

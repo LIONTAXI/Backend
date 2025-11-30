@@ -4,14 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import taxi.tago.dto.EmailAuthRequest;
-import taxi.tago.dto.EmailAuthResponse;
-import taxi.tago.dto.LoginRequest;
-import taxi.tago.dto.LoginResponse;
-import taxi.tago.dto.PasswordResetRequest;
+import taxi.tago.dto.Email.EmailAuthRequest;
+import taxi.tago.dto.Email.EmailAuthResponse;
+import taxi.tago.dto.Login.LoginRequest;
+import taxi.tago.dto.Login.LoginResponse;
+import taxi.tago.dto.Password.PasswordResetRequest;
 import taxi.tago.dto.UserMapDto;
-import taxi.tago.service.UserMapService;
-import taxi.tago.service.UserService;
+import taxi.tago.service.User.UserMapService;
+import taxi.tago.service.User.UserService;
 
 import java.util.List;
 
