@@ -26,12 +26,12 @@ public class UserMapDto {
         private String markerEmoji;
 
         // 생성자 메서드 (이모지 자동 👤 설정)
-        public static Response from(Long userId, Double lat, Double lon) {
+        public static Response of(Long userId, Double lat, Double lon, String emoji) {
             return new Response(
                     userId,
                     lat,
                     lon,
-                    "👤"
+                    emoji
             );
         }
     }

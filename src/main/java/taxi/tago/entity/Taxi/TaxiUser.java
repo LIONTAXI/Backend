@@ -5,11 +5,16 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import taxi.tago.entity.User;
+import lombok.Setter;
+import taxi.tago.constant.ParticipationStatus;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "taxi_member")
+@Table(name = "taxi_user")
 public class TaxiUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,10 +31,15 @@ public class TaxiUser {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // 택시팟 참여 상태
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ParticipationStatus status;
 
     // 생성자
     public TaxiUser(TaxiParty taxiParty, User user) {
         this.taxiParty = taxiParty;
         this.user = user;
+        this.status = ParticipationStatus.WAITING;
     }
 }

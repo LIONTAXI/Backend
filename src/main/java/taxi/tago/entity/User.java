@@ -28,15 +28,28 @@ public class User {
     @Column(nullable = false, length = 20)
     private UserRole role = UserRole.USER; // 사용자 역할 (ADMIN, USER)
 
-    // 추가 작성
-
     private Double latitude; // 현재 위도
     private Double longitude; // 현재 경도
     private LocalDateTime lastActiveAt; // 마지막으로 접속해서 활동한 시간
     
     @Column(length = 20)
     private String studentId; // 학번 (도서관 전자출입증 인증용)
-    
+
+    @Column(length = 2)
+    private String shortStudentId; // nn학번
+
     @Column(length = 50)
     private String name; // 이름 (도서관 전자출입증 인증용)
+
+    @Column(name = "img_url")
+    private String imgUrl; // 프로필사진 경로
+
+    @PrePersist
+    @PreUpdate
+    public void extractShortStudentId() {
+        // studentId가 있고, 길이가 충분할 때만 추출
+        if (this.studentId != null && this.studentId.length() >= 4) {
+            this.shortStudentId = this.studentId.substring(2, 4);
+        }
+    }
 }
