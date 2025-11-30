@@ -1,9 +1,10 @@
-package taxi.tago.entity;
+package taxi.tago.entity.Taxi;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import taxi.tago.entity.User;
 import lombok.Setter;
 import taxi.tago.constant.ParticipationStatus;
 

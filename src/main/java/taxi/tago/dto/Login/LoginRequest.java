@@ -1,4 +1,4 @@
-package taxi.tago.dto;
+package taxi.tago.dto.Login;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,8 +7,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class PasswordSetRequest {
+public class LoginRequest {
     private String email; // 웹메일 (아이디)
     private String password; // 비밀번호
-    private String confirmPassword; // 비밀번호 확인
 }
+

@@ -1,4 +1,4 @@
-package taxi.tago.entity;
+package taxi.tago.entity.Taxi;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import taxi.tago.constant.TaxiPartyStatus;
+import taxi.tago.entity.User;
 
 import java.time.LocalDateTime;
 

@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import taxi.tago.dto.LibraryCardAuthResponse;
+import taxi.tago.dto.LibraryCard.LibraryCardAuthResponse;
 import taxi.tago.service.LibraryCardAuthService;
 import taxi.tago.service.LibraryCardAuthService.LibraryCardAuthResult;
 

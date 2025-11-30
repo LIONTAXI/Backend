@@ -1,4 +1,4 @@
-package taxi.tago.dto;
+package taxi.tago.dto.LibraryCard;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
