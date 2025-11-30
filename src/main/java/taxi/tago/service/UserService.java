@@ -57,6 +57,7 @@ public class UserService {
         user.setEmail(email);
         user.setPassword(encodedPassword);
         user.setLastActiveAt(LocalDateTime.now());
+        user.setImgUrl("/images/default.svg");
 
         // 6. 사용자 저장
         userRepository.save(user);
