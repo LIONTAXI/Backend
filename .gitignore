@@ -44,3 +44,9 @@ src/main/resources/application.properties
 
 ### Environment Variables ###
 .env
+
+### 정적 리소스(이미지) 업로드 제외 설정 ###
+# images 폴더 안의 모든 것을 무시
+src/main/resources/static/images/*
+# 하지만, default.svg 파일만은 무시하지 않음(깃허브 push, pull에 포함)
+!src/main/resources/static/images/default.svg
