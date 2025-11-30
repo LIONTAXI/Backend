@@ -171,6 +171,9 @@ public class TaxiPartyService {
                 .map(request -> new TaxiUserDto.RequestResponse(
                         request.getId(),
                         request.getUser().getId(),
+                        request.getUser().getName(),
+                        request.getUser().getShortStudentId(),
+                        request.getUser().getImgUrl(),
                         request.getStatus()
                 ))
                 .collect(Collectors.toList());
