@@ -12,6 +12,7 @@ import taxi.tago.dto.Password.PasswordResetRequest;
 import taxi.tago.dto.UserMapDto;
 import taxi.tago.service.User.UserMapService;
 import taxi.tago.service.User.UserService;
+import taxi.tago.util.JwtUtil;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,7 @@ public class UserController {
 
     private final UserMapService userService;
     private final UserService authUserService;
+    private final JwtUtil jwtUtil;
 
     // 사용자 로그인
     @PostMapping("/api/login")
@@ -36,6 +38,7 @@ public class UserController {
                         false,
                         "아이디를 입력해주세요.",
                         null,
+                        null,
                         null
                 ));
             }
@@ -45,6 +48,7 @@ public class UserController {
                         false,
                         "비밀번호를 입력해주세요.",
                         request.getEmail(),
+                        null,
                         null
                 ));
             }
@@ -52,17 +56,22 @@ public class UserController {
             // 로그인 처리
             var user = authUserService.login(request.getEmail(), request.getPassword());
 
+            // JWT 토큰 생성
+            String token = jwtUtil.generateToken(user);
+
             return ResponseEntity.ok(new LoginResponse(
                     true,
                     "로그인 성공",
                     user.getEmail(),
-                    user.getRole()
+                    user.getRole(),
+                    token
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new LoginResponse(
                     false,
                     e.getMessage(),
                     request.getEmail(),
+                    null,
                     null
             ));
         } catch (Exception e) {
@@ -70,6 +79,7 @@ public class UserController {
                     false,
                     "로그인 처리 중 오류가 발생했습니다: " + e.getMessage(),
                     request.getEmail(),
+                    null,
                     null
             ));
         }
@@ -105,6 +115,7 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "이메일을 입력해주세요.",
+                        null,
                         null
                 ));
             }
@@ -115,19 +126,22 @@ public class UserController {
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
                     "인증 코드가 전송되었습니다.",
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new EmailAuthResponse(
                     false,
                     e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "인증 코드 전송에 실패했습니다: " + e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         }
     }
@@ -141,6 +155,7 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "이메일을 입력해주세요.",
+                        null,
                         null
                 ));
             }
@@ -149,7 +164,8 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "인증 코드를 입력해주세요.",
-                        request.getEmail()
+                        request.getEmail(),
+                        null
                 ));
             }
 
@@ -160,26 +176,30 @@ public class UserController {
                 return ResponseEntity.ok(new EmailAuthResponse(
                         true,
                         "인증 코드가 일치합니다.",
-                        request.getEmail()
+                        request.getEmail(),
+                        null
                 ));
             } else {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "인증 코드가 일치하지 않습니다.",
-                        request.getEmail()
+                        request.getEmail(),
+                        null
                 ));
             }
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new EmailAuthResponse(
                     false,
                     e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "인증 코드 검증 중 오류가 발생했습니다: " + e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         }
     }
@@ -193,6 +213,7 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "이메일을 입력해주세요.",
+                        null,
                         null
                 ));
             }
@@ -203,19 +224,22 @@ public class UserController {
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
                     "인증 코드가 재전송되었습니다. (기존 코드는 초기화되었습니다.)",
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new EmailAuthResponse(
                     false,
                     e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "인증 코드 재전송에 실패했습니다: " + e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         }
     }
@@ -229,6 +253,7 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "이메일을 입력해주세요.",
+                        null,
                         null
                 ));
             }
@@ -237,7 +262,8 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "비밀번호를 입력해주세요.",
-                        request.getEmail()
+                        request.getEmail(),
+                        null
                 ));
             }
 
@@ -245,7 +271,8 @@ public class UserController {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "비밀번호 확인을 입력해주세요.",
-                        request.getEmail()
+                        request.getEmail(),
+                        null
                 ));
             }
 
@@ -255,19 +282,22 @@ public class UserController {
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
                     "비밀번호가 성공적으로 변경되었습니다.",
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new EmailAuthResponse(
                     false,
                     e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "비밀번호 변경 중 오류가 발생했습니다: " + e.getMessage(),
-                    request.getEmail()
+                    request.getEmail(),
+                    null
             ));
         }
     }

@@ -26,10 +26,11 @@ public class UserService {
      * @param email 웹메일 (아이디)
      * @param password 비밀번호
      * @param confirmPassword 비밀번호 확인
+     * @return 생성된 User 객체
      * @throws IllegalArgumentException 유효성 검증 실패 시
      */
     @Transactional
-    public void register(String email, String password, String confirmPassword) {
+    public User register(String email, String password, String confirmPassword) {
         // 1. 이메일 인증 완료 여부 확인
         if (!emailAuthService.isEmailVerified(email)) {
             throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다. 먼저 이메일 인증을 완료해주세요.");
@@ -60,12 +61,13 @@ public class UserService {
         user.setLastActiveAt(LocalDateTime.now());
 
         // 6. 사용자 저장
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
         
         // 7. 인증 완료 상태 제거 (이미 사용됨)
         emailAuthService.removeVerifiedEmail(email);
         
         log.info("회원가입 완료: {}", email);
+        return savedUser;
     }
 
     /**
