@@ -9,9 +9,13 @@ import taxi.tago.dto.LibraryCard.LibraryCardAuthResponse;
 import taxi.tago.service.LibraryCardAuthService;
 import taxi.tago.service.LibraryCardAuthService.LibraryCardAuthResult;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/auth/library-card")
 @RequiredArgsConstructor
+@Tag(name = "도서관 전자출입증 인증 API", description = "도서관 전자출입증 이미지 업로드, OCR 인식 및 인증 요청 제출 기능을 제공합니다.")
 public class LibraryCardAuthController {
 
     private final LibraryCardAuthService libraryCardAuthService;
@@ -23,6 +27,10 @@ public class LibraryCardAuthController {
      * @return OCR 인식 결과 (이름, 학번 추출 결과)
      */
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    @Operation(
+            summary = "도서관 전자출입증 이미지 업로드 및 OCR 인식",
+            description = "도서관 전자출입증 이미지를 업로드하고 OCR을 통해 이름과 학번을 자동으로 추출합니다."
+    )
     public ResponseEntity<LibraryCardAuthResponse> uploadLibraryCard(
             @RequestParam(name = "image", required = true) MultipartFile imageFile) {
         
@@ -87,6 +95,10 @@ public class LibraryCardAuthController {
      * @return 인증 요청 결과
      */
     @PostMapping(value = "/submit", consumes = "multipart/form-data")
+    @Operation(
+            summary = "수동 인증 요청 제출",
+            description = "사진, 이름, 학번을 받아서 승인 대기 상태로 저장합니다. 관리자가 승인/반려 처리합니다."
+    )
     public ResponseEntity<LibraryCardAuthResponse> submitManualAuth(
             @RequestParam(name = "userId", required = true) String userId,
             @RequestParam(name = "image", required = true) MultipartFile imageFile,

@@ -10,9 +10,13 @@ import taxi.tago.dto.Password.PasswordSetRequest;
 import taxi.tago.service.EmailAuthService;
 import taxi.tago.service.User.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/auth/email")
 @RequiredArgsConstructor
+@Tag(name = "이메일 인증 API", description = "이메일 인증 코드 전송, 검증, 재전송 및 회원가입 기능을 제공합니다.")
 public class EmailAuthController {
 
     private final EmailAuthService emailAuthService;
@@ -20,6 +24,10 @@ public class EmailAuthController {
 
     // 인증 코드 전송
     @PostMapping("/send")
+    @Operation(
+            summary = "인증 코드 전송",
+            description = "회원가입을 위한 이메일 인증 코드를 전송합니다."
+    )
     public ResponseEntity<EmailAuthResponse> sendAuthCode(@RequestBody EmailAuthRequest request) {
         try {
             emailAuthService.sendAuthCode(request.getEmail());
@@ -48,6 +56,10 @@ public class EmailAuthController {
 
 // 인증 코드 검증
     @PostMapping("/verify")
+    @Operation(
+            summary = "인증 코드 검증",
+            description = "전송된 이메일 인증 코드를 검증합니다. 인증 성공 시 비밀번호 설정 화면으로 이동합니다."
+    )
     public ResponseEntity<EmailAuthResponse> verifyAuthCode(@RequestBody EmailAuthRequest request) {
         try {
             // 이메일 입력 검증
@@ -109,6 +121,10 @@ public class EmailAuthController {
 
     //인증 코드 재전송 (코드 초기화 후 재전송)
     @PostMapping("/resend")
+    @Operation(
+            summary = "인증 코드 재전송",
+            description = "기존 인증 코드를 초기화하고 새로운 인증 코드를 재전송합니다."
+    )
     public ResponseEntity<EmailAuthResponse> resendAuthCode(@RequestBody EmailAuthRequest request) {
         try {
             emailAuthService.resendAuthCode(request.getEmail());
@@ -137,6 +153,10 @@ public class EmailAuthController {
 
     // 비밀번호 설정
     @PostMapping("/set-password")
+    @Operation(
+            summary = "비밀번호 설정 및 회원가입",
+            description = "이메일 인증이 완료된 사용자의 비밀번호를 설정하고 회원가입을 완료합니다."
+    )
     public ResponseEntity<EmailAuthResponse> setPassword(@RequestBody PasswordSetRequest request) {
         try {
             // 입력값 검증

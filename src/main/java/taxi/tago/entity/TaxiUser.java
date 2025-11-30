@@ -1,14 +1,11 @@
-package taxi.tago.entity.Taxi;
+package taxi.tago.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import taxi.tago.entity.User;
 import lombok.Setter;
 import taxi.tago.constant.ParticipationStatus;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
