@@ -30,6 +30,10 @@ public class UserController {
 
     // 사용자 로그인
     @PostMapping("/api/login")
+    @Operation(
+            summary = "사용자 로그인",
+            description = "이메일과 비밀번호로 로그인하고 JWT 토큰을 발급받습니다."
+    )
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         try {
             // 입력값 검증
@@ -108,6 +112,10 @@ public class UserController {
 
     // 비밀번호 변경용 인증코드 발송
     @PostMapping("/api/password-reset/send-code")
+    @Operation(
+            summary = "비밀번호 변경용 인증코드 발송",
+            description = "비밀번호 변경을 위한 이메일 인증 코드를 전송합니다."
+    )
     public ResponseEntity<EmailAuthResponse> sendPasswordResetCode(@RequestBody EmailAuthRequest request) {
         try {
             // 입력값 검증
@@ -148,6 +156,10 @@ public class UserController {
 
     // 비밀번호 변경용 인증코드 검증
     @PostMapping("/api/password-reset/verify-code")
+    @Operation(
+            summary = "비밀번호 변경용 인증코드 검증",
+            description = "비밀번호 변경을 위해 전송된 이메일 인증 코드를 검증합니다."
+    )
     public ResponseEntity<EmailAuthResponse> verifyPasswordResetCode(@RequestBody EmailAuthRequest request) {
         try {
             // 입력값 검증
@@ -206,6 +218,10 @@ public class UserController {
 
     // 비밀번호 변경용 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
     @PostMapping("/api/password-reset/resend-code")
+    @Operation(
+            summary = "비밀번호 변경용 인증코드 재전송",
+            description = "기존 인증 코드를 초기화하고 새로운 인증 코드를 재전송합니다."
+    )
     public ResponseEntity<EmailAuthResponse> resendPasswordResetCode(@RequestBody EmailAuthRequest request) {
         try {
             // 입력값 검증
@@ -246,6 +262,10 @@ public class UserController {
 
     // 비밀번호 변경
     @PostMapping("/api/password-reset/change")
+    @Operation(
+            summary = "비밀번호 변경",
+            description = "인증 코드 검증이 완료된 사용자의 비밀번호를 변경합니다."
+    )
     public ResponseEntity<EmailAuthResponse> changePassword(@RequestBody PasswordResetRequest request) {
         try {
             // 입력값 검증

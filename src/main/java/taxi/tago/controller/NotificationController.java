@@ -12,6 +12,9 @@ import taxi.tago.dto.NotificationDto;
 import taxi.tago.service.NotificationService;
 import taxi.tago.util.SseEmitters;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * 알림 컨트롤러
  * 
@@ -30,6 +33,7 @@ import taxi.tago.util.SseEmitters;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
+@Tag(name = "알림 API", description = "알림 목록 조회, 실시간 알림 스트림, 알림 읽음 처리 기능을 제공합니다.")
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -49,6 +53,10 @@ public class NotificationController {
      * GET /api/notifications?userId=1&page=0&size=20
      */
     @GetMapping
+    @Operation(
+            summary = "알림 목록 조회",
+            description = "최신 알림부터 내림차순으로 반환합니다. 페이지네이션을 지원합니다. (기본값: size=20, sort=createdAt, direction=DESC)"
+    )
     public ResponseEntity<Page<NotificationDto>> getNotifications(
             @RequestParam Long userId,
             @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC)
@@ -61,8 +69,6 @@ public class NotificationController {
     /**
      * 미확인 알림 개수 조회
      * 
-     * 벨 아이콘 배지에 표시할 숫자입니다.
-     * 프론트에서 주기적으로(예: 10초마다) 폴링하여 최신 상태를 유지합니다.
      * 
      * @param userId 현재 사용자 ID (쿼리 파라미터)
      * @return 미확인 알림 개수
@@ -74,6 +80,10 @@ public class NotificationController {
      * 3
      */
     @GetMapping("/unread-count")
+    @Operation(
+            summary = "미확인 알림 개수 조회",
+            description = "벨 배지에 표시할 미확인 알림 개수를 조회합니다."
+    )
     public ResponseEntity<Long> getUnreadCount(@RequestParam Long userId) {
         long count = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(count);
@@ -101,17 +111,13 @@ public class NotificationController {
      * @param userId 현재 사용자 ID (쿼리 파라미터)
      * @return SseEmitter (SSE 연결)
      * 
-     * 예시 요청:
-     * GET /api/notifications/stream?userId=1
-     * 
-     * 프론트엔드 사용 예시 (JavaScript):
-     * const eventSource = new EventSource('/api/notifications/stream?userId=1');
-     * eventSource.addEventListener('notification', (event) => {
-     *   const notification = JSON.parse(event.data);
-     *   // 알림 UI 업데이트
      * });
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(
+            summary = "SSE 실시간 알림 스트림 연결",
+            description = "클라이언트가 이 엔드포인트에 연결하면 서버에서 알림이 발생할 때마다 실시간으로 이벤트를 전송합니다."
+    )
     public SseEmitter streamNotifications(@RequestParam Long userId) {
         SseEmitter emitter = sseEmitters.create(userId);
         
@@ -141,6 +147,10 @@ public class NotificationController {
      * PATCH /api/notifications/10/read?userId=1
      */
     @PatchMapping("/{id}/read")
+    @Operation(
+            summary = "알림 읽음 처리",
+            description = "사용자가 알림 카드를 클릭하면 호출됩니다. read = true로 변경되어 UI에서 '읽은 알림' 스타일로 표시됩니다."
+    )
     public ResponseEntity<Void> markAsRead(
             @PathVariable Long id,
             @RequestParam Long userId
