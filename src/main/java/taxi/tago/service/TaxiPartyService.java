@@ -160,7 +160,7 @@ public class TaxiPartyService {
         return "같이 타기 요청이 완료되었습니다.";
     }
 
-    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회=
+    // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
     @Transactional(readOnly = true)
     public List<TaxiUserDto.RequestResponse> getJoinRequests(Long partyId) {
         // 요청 보낸 동승슈니 조회

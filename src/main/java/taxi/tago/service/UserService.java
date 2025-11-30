@@ -5,11 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import taxi.tago.dto.MypageDto;
 import taxi.tago.entity.User;
 import taxi.tago.repository.UserRepository;
 import taxi.tago.util.PasswordValidator;
 
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -191,5 +196,50 @@ public class UserService {
         emailAuthService.removePasswordResetVerifiedEmail(email);
 
         log.info("비밀번호 변경 완료: {}", email);
+    }
+
+    // 마이페이지_프로필수정_기존정보조회
+    @Transactional(readOnly = true)
+    public MypageDto.InfoResponse getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다. id=" + userId));
+
+        return new MypageDto.InfoResponse(
+                user.getImgUrl(),
+                user.getName(),
+                user.getShortStudentId(),
+                user.getEmail()
+        );
+    }
+
+    // 마이페이지_프로필수정_프로필사진업로드
+    @Transactional
+    public String updateProfileImage(Long userId, MultipartFile file) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다. id=" + userId));
+
+        // 1. 파일이 비어있는지 확인
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 이미지가 없습니다.");
+        }
+
+        // 2. 파일 저장 경로 설정 (프로젝트 내의 static/images 폴더)
+        String projectPath = System.getProperty("user.dir") + "\\src\\main\\resources\\static\\images\\";
+
+        // 3. 파일 이름 중복 방지를 위한 UUID 생성
+        UUID uuid = UUID.randomUUID();
+        String fileName = uuid + "_" + file.getOriginalFilename();
+
+        // 4. 실제 파일 저장 (서버 하드디스크에 기록)
+        File saveFile = new File(projectPath, fileName);
+        file.transferTo(saveFile);
+
+        // 5. DB에 저장할 URL 만들기 (웹 접속용 경로)
+        String dbImgUrl = "/images/" + fileName;
+
+        // 6. 엔티티 업데이트 (Dirty Checking)
+        user.setImgUrl(dbImgUrl);
+
+        return "프로필 사진 수정 완료, 경로: " + dbImgUrl;
     }
 }
