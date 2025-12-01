@@ -63,4 +63,29 @@ public class ChatRoomController {
         MyChatRoomListResponse response = chatRoomService.getMyChatRooms(userId);
         return ResponseEntity.ok(response);
     }
+
+    // 택시팟 끝내기 (채팅방 종료) API
+    @PostMapping("/{chatRoomId}/close")
+    @Operation(
+            summary = "택시팟 끝내기 (채팅방 종료)",
+            description = """
+                    - 지난 택시팟 목록 화면에서 '택시팟 끝내기' 버튼을 눌렀을 때 호출되는 API입니다.
+                    - 해당 채팅방(ChatRoom)의 closed 값을 true 로 바꿔,
+                      이후 '내 채팅방 목록'(/api/chat/rooms/my) 조회 시 더 이상 노출되지 않도록 처리합니다.
+                    - 택시팟의 총대슈니만 호출할 수 있으며,
+                      총대가 아닌 사용자가 호출하면 400 Bad Request + 에러 메시지가 반환됩니다.
+                    """
+    )
+    public ResponseEntity<String> closeChatRoom(
+            @PathVariable Long chatRoomId, // 어떤 채팅방을 끝낼지 식별하는 ID
+            @AuthenticationPrincipal CustomUserDetails userDetails // JWT로부터 복원된 로그인 유저 정보
+    ) {
+        Long userId = userDetails.getUserId(); // 현재 로그인한 사용자의 PK
+
+        // 비즈니스 로직 호출 (권한 체크 + ChatRoom.close() 수행)
+        chatRoomService.closeChatRoom(chatRoomId, userId);
+
+        // 별도의 DTO 필요없이 성공 메시지만 내려줌
+        return ResponseEntity.ok("택시팟 채팅이 종료되었습니다.");
+    }
 }
