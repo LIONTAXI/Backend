@@ -6,8 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import taxi.tago.dto.*;
-import taxi.tago.service.UserMapService;
-import taxi.tago.service.UserService;
+import taxi.tago.service.User.UserMapService;
+import taxi.tago.service.User.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

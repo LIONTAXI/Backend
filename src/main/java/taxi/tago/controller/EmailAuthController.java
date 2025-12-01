@@ -8,7 +8,7 @@ import taxi.tago.dto.EmailAuthRequest;
 import taxi.tago.dto.EmailAuthResponse;
 import taxi.tago.dto.PasswordSetRequest;
 import taxi.tago.service.EmailAuthService;
-import taxi.tago.service.UserService;
+import taxi.tago.service.User.UserService;
 
 @RestController
 @RequestMapping("/api/auth/email")

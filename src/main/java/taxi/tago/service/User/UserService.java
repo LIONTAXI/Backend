@@ -1,4 +1,4 @@
-package taxi.tago.service;
+package taxi.tago.service.User;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.dto.MypageDto;
 import taxi.tago.entity.User;
 import taxi.tago.repository.UserRepository;
+import taxi.tago.service.EmailAuthService;
 import taxi.tago.util.PasswordValidator;
 
 import org.springframework.web.multipart.MultipartFile;

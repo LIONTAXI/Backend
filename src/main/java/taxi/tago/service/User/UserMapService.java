@@ -1,4 +1,4 @@
-package taxi.tago.service;
+package taxi.tago.service.User;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
