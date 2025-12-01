@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.ParticipationStatus;
+import taxi.tago.dto.chat.ChatRoomSummaryResponse;
+import taxi.tago.dto.chat.MyChatRoomListResponse;
 import taxi.tago.entity.ChatRoom;
 import taxi.tago.entity.TaxiParty;
 import taxi.tago.entity.TaxiUser;
@@ -11,7 +13,10 @@ import taxi.tago.repository.ChatRoomRepository;
 import taxi.tago.repository.TaxiPartyRepository;
 import taxi.tago.repository.TaxiUserRepository;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -74,5 +79,45 @@ public class ChatRoomService {
         if (!isHost && !isAcceptedPassenger) {
             throw new IllegalArgumentException("채팅방 입장 권한이 없습니다. 같이 타기 요청이 수락된 후에만 채팅방에 입장할 수 있습니다."); // 400
         }
+    }
+
+    // 내 채팅방 목록을 조회하는 메서드
+    public MyChatRoomListResponse getMyChatRooms(Long userId) {
+        // 내가 총대인 채팅방들
+        List<ChatRoom> hostRooms = chatRoomRepository.findByTaxiParty_User_Id(userId);
+
+        // 내가 ACCEPTED 동승슈니인 택시팟 ID들
+        List<TaxiUser> acceptedList = taxiUserRepository.findAllByUserIdAndStatus(userId, ParticipationStatus.ACCEPTED);
+
+        List<Long> taxiPartyIds = acceptedList.stream()
+                .map(tu -> tu.getTaxiParty().getId())
+                .distinct()
+                .toList();
+        // 내가 동승슈니인 채팅방들
+        List<ChatRoom> passengerRooms = taxiPartyIds.isEmpty() ? List.of() : chatRoomRepository.findByTaxiParty_IdIn(taxiPartyIds);
+
+        // 총대 + 동승슈니 채팅방 합치고 중복 제거
+        List<ChatRoom> allRooms = Stream.concat(hostRooms.stream(), passengerRooms.stream())
+                .distinct().toList();
+
+        // closed 여부, TaxiPartyStatus로 분류
+        List<ChatRoomSummaryResponse> matchingRooms = new ArrayList<>();
+        List<ChatRoomSummaryResponse> finishedRooms = new ArrayList<>();
+
+        for (ChatRoom room : allRooms) {
+            // "택시팟 끝내기" 눌러서 닫힌 방은 목록에서 제외
+            if (room.isClosed()) {
+                continue;
+            }
+
+            ChatRoomSummaryResponse dto = ChatRoomSummaryResponse.from(room);
+
+            switch (room.getTaxiParty().getStatus()) {
+                case MATCHING -> matchingRooms.add(dto); // 지금 매칭중인 택시팟
+                case FINISHED -> finishedRooms.add(dto); // 지난 택시팟
+            }
+        }
+
+        return new MyChatRoomListResponse(matchingRooms, finishedRooms);
     }
 }

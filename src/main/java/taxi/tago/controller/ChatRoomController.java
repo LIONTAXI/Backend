@@ -5,11 +5,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.chat.ChatRoomResponse;
+import taxi.tago.dto.chat.MyChatRoomListResponse;
 import taxi.tago.entity.ChatRoom;
 import taxi.tago.security.CustomUserDetails;
 import taxi.tago.service.ChatRoomService;
@@ -44,6 +42,25 @@ public class ChatRoomController {
 
         // 엔티티 -> DTO 변환
         ChatRoomResponse response = ChatRoomResponse.from(room);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my")
+    @Operation(
+            summary = "내 채팅방 목록 조회",
+            description = """
+                    - 로그인한 사용자가 참여한 택시팟의 채팅방 목록을 조회합니다.
+                    - TaxiPartyStatus와 ChatRoom.closed 값을 조합해서
+                      '지금 매칭중인 택시팟' / '지난 택시팟' 두 영역으로 나눠서 응답합니다.
+                    - '택시팟 끝내기' 버튼을 누른 채팅방(room.closed = true)은
+                      목록에서 완전히 제외됩니다.
+                    """
+    )
+    public ResponseEntity<MyChatRoomListResponse> getMyChatRooms(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUserId();
+        MyChatRoomListResponse response = chatRoomService.getMyChatRooms(userId);
         return ResponseEntity.ok(response);
     }
 }
