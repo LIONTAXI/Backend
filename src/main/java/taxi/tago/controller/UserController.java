@@ -24,8 +24,8 @@ import java.util.List;
 @Tag(name = "유저 마커 API", description = "유저 위치 및 마지막 활동 시간 업데이트, 현재 접속 중인 유저 조회 (마지막 활동 시간이 3분 이내) 기능을 제공합니다.")
 public class UserController {
 
-    private final UserMapService userService;
-    private final UserService authUserService;
+    private final UserMapService userMapService;
+    private final UserService userService;
     private final JwtUtil jwtUtil;
 
     // 사용자 로그인
@@ -58,7 +58,7 @@ public class UserController {
             }
 
             // 로그인 처리
-            var user = authUserService.login(request.getEmail(), request.getPassword());
+            var user = userService.login(request.getEmail(), request.getPassword());
 
             // JWT 토큰 생성
             String token = jwtUtil.generateToken(user);
@@ -96,7 +96,7 @@ public class UserController {
             description = "각 유저의 위치와 마지막으로 활동한 시간을 업데이트합니다."
     )
     public String userMapUpdate(@RequestBody UserMapDto.UpdateRequest dto) {
-        userService.userMapUpdate(dto);
+        userMapService.userMapUpdate(dto);
         return "유저 위치 및 활동시간 업데이트 성공";
     }
 
@@ -107,7 +107,7 @@ public class UserController {
             description = "마지막 활동 시간이 3분 이내인 모든 유저를 조회하여 지도 위에 마커로 띄웁니다."
     )
     public List<UserMapDto.Response> getActiveUsers() {
-        return userService.getActiveUsers();
+        return userMapService.getActiveUsers();
     }
 
     // 비밀번호 변경용 인증코드 발송
@@ -129,7 +129,7 @@ public class UserController {
             }
 
             // 인증코드 발송
-            authUserService.sendPasswordResetCode(request.getEmail());
+            userService.sendPasswordResetCode(request.getEmail());
 
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
@@ -182,7 +182,7 @@ public class UserController {
             }
 
             // 인증코드 검증
-            boolean isValid = authUserService.verifyPasswordResetCode(request.getEmail(), request.getCode());
+            boolean isValid = userService.verifyPasswordResetCode(request.getEmail(), request.getCode());
 
             if (isValid) {
                 return ResponseEntity.ok(new EmailAuthResponse(
@@ -235,7 +235,7 @@ public class UserController {
             }
 
             // 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
-            authUserService.resendPasswordResetCode(request.getEmail());
+            userService.resendPasswordResetCode(request.getEmail());
 
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
@@ -297,7 +297,7 @@ public class UserController {
             }
 
             // 비밀번호 변경 처리
-            authUserService.changePassword(request.getEmail(), request.getPassword(), request.getConfirmPassword());
+            userService.changePassword(request.getEmail(), request.getPassword(), request.getConfirmPassword());
 
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
