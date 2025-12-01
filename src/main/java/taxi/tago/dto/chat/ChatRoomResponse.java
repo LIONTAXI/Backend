@@ -9,7 +9,7 @@ import taxi.tago.entity.ChatRoom;
 import java.time.LocalDateTime;
 
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor // json 역직렬화
 @AllArgsConstructor
 public class ChatRoomResponse {
 
