@@ -7,19 +7,18 @@ import taxi.tago.constant.TaxiPartyStatus;
 import taxi.tago.constant.ParticipationStatus;
 import taxi.tago.dto.TaxiPartyDto;
 import taxi.tago.dto.TaxiUserDto;
+import taxi.tago.entity.Block;
 import taxi.tago.entity.TaxiParty;
 import taxi.tago.entity.TaxiUser;
 import taxi.tago.entity.User;
+import taxi.tago.repository.BlockRepository;
 import taxi.tago.repository.TaxiPartyRepository;
 import taxi.tago.repository.TaxiUserRepository;
 import taxi.tago.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +28,7 @@ public class TaxiPartyService {
     private final TaxiPartyRepository taxiPartyRepository;
     private final UserRepository userRepository;
     private final TaxiUserRepository taxiUserRepository;
+    private final BlockRepository blockRepository;
 
     // 이모지 20개 리스트
     private static final List<String> EMOJI_LIST = Arrays.asList(
@@ -63,24 +63,41 @@ public class TaxiPartyService {
         return saved.getId();
     }
 
-    // 택시팟 목록 조회 (매칭중 & 최신순)
-    @Transactional(readOnly = true)
-    public List<TaxiPartyDto.InfoResponse> getTaxiParties() {
-        List<TaxiParty> parties = taxiPartyRepository.findAllByStatusOrderByCreatedAtDesc(TaxiPartyStatus.MATCHING);
+    // 택시팟 목록 조회 (매칭중 & 최신순 & 차단 필터링)
+        @Transactional(readOnly = true)
+        public List<TaxiPartyDto.InfoResponse> getTaxiParties(Long myId) { // 파라미터로 myId 받기
+            User me = userRepository.findById(myId)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자 정보가 없습니다."));
 
-        // 엔티티 -> DTO 변환
-        return parties.stream()
-                .map(party -> new TaxiPartyDto.InfoResponse(
-                        party.getId(),
-                        party.getDeparture(),
-                        party.getDestination(),
-                        party.getMeetingTime().toLocalTime(),
-                        party.getCurrentParticipants(),
-                        party.getMaxParticipants(),
-                        party.getExpectedPrice()
-                ))
-                .collect(Collectors.toList());
-    }
+            // 차단 리스트
+            List<Block> blocksFromMe = blockRepository.findAllByBlocker(me);
+            List<Block> blocksToMe = blockRepository.findAllByBlocked(me);
+
+            Set<Long> invisibleUserIds = blocksFromMe.stream()
+                    .map(block -> block.getBlocked().getId())
+                    .collect(Collectors.toSet());
+
+            invisibleUserIds.addAll(blocksToMe.stream()
+                    .map(block -> block.getBlocker().getId())
+                    .collect(Collectors.toList()));
+
+            // 전체 매칭중 리스트 가져오기
+            List<TaxiParty> parties = taxiPartyRepository.findAllByStatusOrderByCreatedAtDesc(TaxiPartyStatus.MATCHING);
+
+            // 필터링 및 변환
+            return parties.stream()
+                    .filter(party -> !invisibleUserIds.contains(party.getUser().getId())) // 작성자가 차단 목록에 있으면 제외
+                    .map(party -> new TaxiPartyDto.InfoResponse(
+                            party.getId(),
+                            party.getDeparture(),
+                            party.getDestination(),
+                            party.getMeetingTime().toLocalTime(),
+                            party.getCurrentParticipants(),
+                            party.getMaxParticipants(),
+                            party.getExpectedPrice()
+                    ))
+                    .collect(Collectors.toList());
+        }
 
     // 택시팟 정보
     @Transactional(readOnly = true)

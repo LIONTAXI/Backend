@@ -112,8 +112,8 @@ public class UserController {
             summary = "현재 접속 중인 유저 조회",
             description = "마지막 활동 시간이 3분 이내인 모든 유저를 조회하여 지도 위에 마커로 띄웁니다."
     )
-    public List<UserMapDto.Response> getActiveUsers() {
-        return userMapService.getActiveUsers();
+    public List<UserMapDto.Response> getActiveUsers(@RequestParam Long userId) {
+        return userMapService.getActiveUsers(userId);
     }
 
     // 비밀번호 변경용 인증코드 발송

@@ -5,14 +5,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.TaxiPartyStatus;
 import taxi.tago.dto.UserMapDto;
+import taxi.tago.entity.Block;
 import taxi.tago.entity.TaxiParty;
 import taxi.tago.entity.User;
+import taxi.tago.repository.BlockRepository;
 import taxi.tago.repository.TaxiPartyRepository;
 import taxi.tago.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +24,7 @@ public class UserMapService {
 
     private final UserRepository userRepository;
     private final TaxiPartyRepository taxiPartyRepository;
+    private final BlockRepository blockRepository;
 
     // 유저 위치 및 마지막 활동 시간 업데이트
     @Transactional
@@ -39,34 +43,46 @@ public class UserMapService {
 
     // 현재 접속 중인 유저 조회 (마지막 활동 시간이 3분 이내)
     @Transactional(readOnly = true)
-    public List<UserMapDto.Response> getActiveUsers() {
+    public List<UserMapDto.Response> getActiveUsers(Long myId) { // 파라미터로 myId 받기
+        User me = userRepository.findById(myId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보가 없습니다."));
+
+        // 차단 리스트: 내가 차단한 사람 + 나를 차단한 사람
+        List<Block> blocksFromMe = blockRepository.findAllByBlocker(me);
+        List<Block> blocksToMe = blockRepository.findAllByBlocked(me);
+
+        // 안 보여줄 사람들의 ID 집합
+        Set<Long> invisibleUserIds = blocksFromMe.stream()
+                .map(block -> block.getBlocked().getId())
+                .collect(Collectors.toSet());
+
+        invisibleUserIds.addAll(blocksToMe.stream()
+                .map(block -> block.getBlocker().getId())
+                .collect(Collectors.toList()));
+
+        // 접속 중인 유저 조회
         List<User> users = userRepository.findAll();
+        LocalDateTime threeMinutesAgo = LocalDateTime.now().minusMinutes(3);
 
-        // 현재 '매칭 중'인 택시팟
+        // 현재 '매칭 중'인 택시팟 정보
         List<TaxiParty> activeParties = taxiPartyRepository.findAllByStatusOrderByCreatedAtDesc(TaxiPartyStatus.MATCHING);
-
         Map<Long, String> hostEmojiMap = activeParties.stream()
-                .filter(party -> party.getUser() != null) // 유저 없는 방 오류 예방
+                .filter(party -> party.getUser() != null)
                 .collect(Collectors.toMap(
                         party -> party.getUser().getId(),
                         TaxiParty::getMarkerEmoji,
                         (oldEmoji, newEmoji) -> oldEmoji
                 ));
 
-
-        LocalDateTime threeMinutesAgo = LocalDateTime.now().minusMinutes(3); // 마지막 접속 시간 조절 여기에서 !
-
         return users.stream()
-                // 활동 중인 유저 필터링
                 .filter(user -> user.getLatitude() != null
                         && user.getLongitude() != null
                         && user.getLastActiveAt() != null
                         && user.getLastActiveAt().isAfter(threeMinutesAgo))
+                .filter(user -> !invisibleUserIds.contains(user.getId())) // 차단 목록에 없는 사람만 표시
                 .map(user -> {
-                    // 이 유저가 총대 명단(Map)에 있으면 그 이모지, 없으면 기본값(👤) 사용
                     String emoji = hostEmojiMap.getOrDefault(user.getId(), "👤");
-
-                    return UserMapDto.Response.of(
+                    return new UserMapDto.Response(
                             user.getId(),
                             user.getLatitude(),
                             user.getLongitude(),
