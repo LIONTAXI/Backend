@@ -25,6 +25,9 @@ public class EmailAuthService {
     @Value("${email.auth.code.length:6}")
     private int codeLength;
 
+    @Value("${spring.mail.from:}")
+    private String fromEmail;
+
     // 이메일별 인증 코드 저장 (실제 운영 환경에서는 Redis 등을 사용 권장)
     private final Map<String, AuthCodeInfo> authCodeStorage = new ConcurrentHashMap<>();
 
@@ -195,86 +198,96 @@ public class EmailAuthService {
 
     // 이메일 전송
     private void sendEmail(String to, String authCode) {
+        // 로컬 테스트용: 콘솔에 인증 코드 출력
+        log.info("========================================");
+        log.info("이메일 인증 코드 전송");
+        log.info("받는 사람: {}", to);
+        log.info("인증 코드: {}", authCode);
+        log.info("유효 시간: {}분", expirationMinutes);
+        log.info("========================================");
+        
         try {
-            // 로컬 테스트용: 콘솔에 인증 코드 출력
-            log.info("========================================");
-            log.info("이메일 인증 코드 전송");
-            log.info("받는 사람: {}", to);
-            log.info("인증 코드: {}", authCode);
-            log.info("유효 시간: {}분", expirationMinutes);
-            log.info("========================================");
-            
-            // 실제 이메일 전송 (Gmail 설정이 되어 있을 경우)
+            // 실제 이메일 전송 (AWS SES 또는 설정된 SMTP 사용)
             SimpleMailMessage message = new SimpleMailMessage();
+            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소)
+            if (fromEmail != null && !fromEmail.isEmpty()) {
+                message.setFrom(fromEmail);
+            }
             message.setTo(to);
-            message.setSubject("[슈슝] 회원가입 인증 코드");
+            message.setSubject("[타고] 회원가입 인증 코드");
             message.setText("안녕하세요.\n\n" +
                     "회원가입을 위한 인증 코드입니다.\n\n" +
                     "인증 코드: " + authCode + "\n\n" +
                     "이 코드는 " + expirationMinutes + "분간 유효합니다.\n\n" +
                     "본인이 요청한 것이 아니라면 무시하셔도 됩니다.");
+            
             mailSender.send(message);
-            log.info("이메일 전송 성공: {}", to);
+            log.info("✅ 이메일 전송 성공: {} (인증 코드: {})", to, authCode);
         } catch (Exception e) {
-            // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
-            log.warn("이메일 전송 실패 (로컬 테스트 모드): {} - 인증 코드는 위 로그에서 확인하세요", to);
-            log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
+            log.error("❌ 이메일 전송 실패: {} - {}", to, e.getMessage(), e);
+            // 운영 환경에서는 예외를 던지거나 재시도 로직을 추가할 수 있습니다.
+            // 현재는 로그만 출력하고 계속 진행 (콘솔 로그에 인증 코드가 출력되므로)
         }
     }
 
     // 비밀번호 변경용 이메일 전송
     private void sendPasswordResetEmail(String to, String authCode) {
+        // 로컬 테스트용: 콘솔에 인증 코드 출력
+        log.info("========================================");
+        log.info("비밀번호 변경용 인증 코드 전송");
+        log.info("받는 사람: {}", to);
+        log.info("인증 코드: {}", authCode);
+        log.info("유효 시간: {}분", expirationMinutes);
+        log.info("========================================");
+        
         try {
-            // 로컬 테스트용: 콘솔에 인증 코드 출력
-            log.info("========================================");
-            log.info("비밀번호 변경용 인증 코드 전송");
-            log.info("받는 사람: {}", to);
-            log.info("인증 코드: {}", authCode);
-            log.info("유효 시간: {}분", expirationMinutes);
-            log.info("========================================");
-            
-            // 실제 이메일 전송 (Gmail 설정이 되어 있을 경우)
+            // 실제 이메일 전송 (AWS SES 또는 설정된 SMTP 사용)
             SimpleMailMessage message = new SimpleMailMessage();
+            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소)
+            if (fromEmail != null && !fromEmail.isEmpty()) {
+                message.setFrom(fromEmail);
+            }
             message.setTo(to);
-            message.setSubject("[슈슝] 비밀번호 재설정 인증 코드");
+            message.setSubject("[타고] 비밀번호 재설정 인증 코드");
             message.setText("안녕하세요.\n\n" +
                     "비밀번호 재설정을 위한 인증 코드입니다.\n\n" +
                     "인증 코드: " + authCode + "\n\n" +
                     "이 코드는 " + expirationMinutes + "분간 유효합니다.\n\n" +
                     "본인이 요청한 것이 아니라면 무시하셔도 됩니다.");
+            
             mailSender.send(message);
-            log.info("비밀번호 변경용 이메일 전송 성공: {}", to);
+            log.info("✅ 비밀번호 변경용 이메일 전송 성공: {} (인증 코드: {})", to, authCode);
         } catch (Exception e) {
-            // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
-            log.warn("비밀번호 변경용 이메일 전송 실패 (로컬 테스트 모드): {} - 인증 코드는 위 로그에서 확인하세요", to);
-            log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
+            log.error("❌ 비밀번호 변경용 이메일 전송 실패: {} - {}", to, e.getMessage(), e);
         }
     }
 
     // 인증 반려 메일 전송
     public void sendRejectionEmail(String email, String rejectionReason) {
+        // 로컬 테스트용: 콘솔에 반려 메일 내용 출력
+        log.info("========================================");
+        log.info("인증 반려 메일 전송");
+        log.info("받는 사람: {}", email);
+        log.info("반려 사유: {}", rejectionReason);
+        log.info("========================================");
+        
         try {
-            // 로컬 테스트용: 콘솔에 반려 메일 내용 출력
-            log.info("========================================");
-            log.info("인증 반려 메일 전송");
-            log.info("받는 사람: {}", email);
-            log.info("반려 사유: {}", rejectionReason);
-            log.info("========================================");
-            
-            // 실제 이메일 전송 (Gmail 설정이 되어 있을 경우)
+            // 실제 이메일 전송 (AWS SES 또는 설정된 SMTP 사용)
             SimpleMailMessage message = new SimpleMailMessage();
+            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소)
+            if (fromEmail != null && !fromEmail.isEmpty()) {
+                message.setFrom(fromEmail);
+            }
             message.setTo(email);
-            message.setSubject("[슈슝] 도서관 전자출입증 인증 반려 안내");
+            message.setSubject("[타고] 도서관 전자출입증 인증 반려 안내");
             message.setText("안녕하세요.\n\n" +
                     "도서관 전자출입증 인증 요청이 반려되었습니다.\n\n" +
                     "반려 사유: " + rejectionReason + "\n\n" +
                     "다시 인증을 시도해주시기 바랍니다.\n\n");
             mailSender.send(message);
-            log.info("반려 메일 전송 성공: {}", email);
+            log.info("✅ 반려 메일 전송 성공: {}", email);
         } catch (Exception e) {
-            // 이메일 전송 실패해도 로그에 출력했으므로 계속 진행
-            log.warn("반려 메일 전송 실패 (로컬 테스트 모드): {} - 반려 사유는 위 로그에서 확인하세요", email);
-            log.warn("실제 이메일 전송을 원하시면 Gmail 앱 비밀번호를 설정하세요", e);
+            log.error("❌ 반려 메일 전송 실패: {} - {}", email, e.getMessage(), e);
         }
     }
 

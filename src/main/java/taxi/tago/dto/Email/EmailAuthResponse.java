@@ -1,19 +1,18 @@
-package taxi.tago.dto;
+package taxi.tago.dto.Email;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import taxi.tago.constant.UserRole;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginResponse {
+public class EmailAuthResponse {
     private boolean success;
     private String message;
-    private String email;
-    private UserRole role;
+    private String email; // 응답에 이메일 포함 (선택사항)
+    private String token; // JWT 토큰 (회원가입 완료 시)
 }
 

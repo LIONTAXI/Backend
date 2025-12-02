@@ -1,4 +1,4 @@
-package taxi.tago.dto;
+package taxi.tago.dto.Login;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,9 +10,11 @@ import taxi.tago.constant.UserRole;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdminLoginResponse {
+public class LoginResponse {
     private boolean success;
     private String message;
     private String email;
-    private UserRole role; // ADMIN 또는 USER
+    private UserRole role;
+    private String token; // JWT 토큰
 }
+

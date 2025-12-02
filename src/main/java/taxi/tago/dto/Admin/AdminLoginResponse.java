@@ -1,17 +1,18 @@
-package taxi.tago.dto;
+package taxi.tago.dto.Admin;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import taxi.tago.constant.UserRole;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmailAuthResponse {
+public class AdminLoginResponse {
     private boolean success;
     private String message;
-    private String email; // 응답에 이메일 포함 (선택사항)
+    private String email;
+    private UserRole role; // ADMIN 또는 USER
 }
-

@@ -8,15 +8,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import taxi.tago.dto.AuthRequestDto;
-import taxi.tago.dto.ApproveRequestDto;
-import taxi.tago.dto.AdminLoginRequest;
-import taxi.tago.dto.AdminLoginResponse;
+import taxi.tago.dto.Admin.AuthRequestDto;
+import taxi.tago.dto.Admin.ApproveRequestDto;
+import taxi.tago.dto.Admin.AdminLoginRequest;
+import taxi.tago.dto.Admin.AdminLoginResponse;
 import taxi.tago.entity.LibraryCardAuth;
 import taxi.tago.service.AdminService;
 import taxi.tago.service.FileStorageService;
 import taxi.tago.service.LibraryCardAuthService;
 import taxi.tago.service.LibraryCardAuthService.LibraryCardAuthResult;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Tag(name = "관리자 API", description = "관리자 로그인 및 도서관 전자출입증 인증 요청 승인/반려 기능을 제공합니다.")
 public class AdminController {
 
     private final AdminService adminService;
@@ -33,6 +37,10 @@ public class AdminController {
 
     // 관리자 로그인
     @PostMapping("/login")
+    @Operation(
+            summary = "관리자 로그인",
+            description = "관리자 이메일과 비밀번호로 로그인합니다."
+    )
     public ResponseEntity<AdminLoginResponse> login(@RequestBody AdminLoginRequest request) {
         try {
             // 입력값 검증
@@ -82,6 +90,10 @@ public class AdminController {
 
     // 승인 대기 중인 모든 인증 요청 목록 조회
     @GetMapping("/auth-requests")
+    @Operation(
+            summary = "승인 대기 중인 인증 요청 목록 조회",
+            description = "승인 대기 상태인 모든 도서관 전자출입증 인증 요청을 조회합니다."
+    )
     public ResponseEntity<List<AuthRequestDto>> getPendingAuthRequests() {
         try {
             List<LibraryCardAuth> authRequests = libraryCardAuthService.getPendingAuthRequests();
@@ -96,6 +108,10 @@ public class AdminController {
 
     // 특정 인증 요청 상세 조회
     @GetMapping("/auth-requests/{authId}")
+    @Operation(
+            summary = "인증 요청 상세 조회",
+            description = "특정 인증 요청의 상세 정보를 조회합니다."
+    )
     public ResponseEntity<AuthRequestDto> getAuthRequestDetail(@PathVariable(name = "authId") Long authId) {
         try {
             return libraryCardAuthService.getAuthRequestById(authId)
@@ -108,6 +124,10 @@ public class AdminController {
 
     // 인증 요청 이미지 조회
     @GetMapping("/auth-requests/{authId}/image")
+    @Operation(
+            summary = "인증 요청 이미지 조회",
+            description = "특정 인증 요청에 첨부된 도서관 전자출입증 이미지를 조회합니다."
+    )
     public ResponseEntity<Resource> getAuthRequestImage(@PathVariable(name = "authId") Long authId) {
         try {
             return libraryCardAuthService.getAuthRequestById(authId)
@@ -142,6 +162,10 @@ public class AdminController {
 
     // 반려 사유 목록 조회
     @GetMapping("/auth-requests/rejection-reasons")
+    @Operation(
+            summary = "반려 사유 목록 조회",
+            description = "인증 요청 반려 시 사용할 수 있는 반려 사유 목록을 조회합니다."
+    )
     public ResponseEntity<List<String>> getRejectionReasons() {
         try {
             List<String> reasons = List.of(
@@ -157,6 +181,10 @@ public class AdminController {
 
     // 인증 요청 승인/반려 처리
     @PostMapping("/auth-requests/approve")
+    @Operation(
+            summary = "인증 요청 승인/반려 처리",
+            description = "도서관 전자출입증 인증 요청을 승인하거나 반려합니다. 반려 시 반려 사유를 필수로 입력해야 합니다."
+    )
     public ResponseEntity<?> approveOrRejectAuthRequest(@RequestBody ApproveRequestDto request) {
         try {
             // 입력값 검증
@@ -194,6 +222,10 @@ public class AdminController {
 
     // 승인/반려 완료된 인증 요청 목록 조회
     @GetMapping("/auth-requests/completed")
+    @Operation(
+            summary = "승인/반려 완료된 인증 요청 목록 조회",
+            description = "승인 또는 반려가 완료된 인증 요청 목록을 조회합니다. status 파라미터로 필터링 가능합니다. (APPROVED, REJECTED)"
+    )
     public ResponseEntity<List<AuthRequestDto>> getCompletedAuthRequests(
             @RequestParam(name = "status", required = false) String status) {
         try {

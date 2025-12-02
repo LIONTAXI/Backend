@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import taxi.tago.constant.ParticipationStatus;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @Setter
