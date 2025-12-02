@@ -9,6 +9,9 @@ import taxi.tago.entity.User;
 import taxi.tago.repository.BlockRepository;
 import taxi.tago.repository.UserRepository;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class BlockService {
@@ -40,5 +43,26 @@ public class BlockService {
         blockRepository.save(block);
 
         return "차단이 완료되었습니다. (본인 ID: " + blocker.getId() + ", 차단한 상대방 ID: " + blocked.getId() + ")";
+    }
+
+    // 내가 차단한 목록
+    @Transactional(readOnly = true)
+    public List<BlockDto.Response> getBlockList(Long blockerId) {
+        User blocker = userRepository.findById(blockerId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 내가 차단한 목록 조회
+        List<Block> blocks = blockRepository.findAllByBlocker(blocker);
+
+        // DTO 변환
+        return blocks.stream()
+                .map(block -> new BlockDto.Response(
+                        block.getId(),
+                        block.getBlocked().getId(),
+                        block.getBlocked().getName(),
+                        block.getBlocked().getImgUrl(),
+                        block.getBlocked().getShortStudentId()
+                ))
+                .collect(Collectors.toList());
     }
 }
