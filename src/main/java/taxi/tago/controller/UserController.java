@@ -13,11 +13,17 @@ import taxi.tago.dto.UserMapDto;
 import taxi.tago.service.User.UserMapService;
 import taxi.tago.service.User.UserService;
 import taxi.tago.util.JwtUtil;
+import org.springframework.web.multipart.MultipartFile;
+import taxi.tago.dto.*;
+import taxi.tago.service.User.UserMapService;
+import taxi.tago.service.User.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.io.IOException;
 import java.util.List;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -106,8 +112,8 @@ public class UserController {
             summary = "현재 접속 중인 유저 조회",
             description = "마지막 활동 시간이 3분 이내인 모든 유저를 조회하여 지도 위에 마커로 띄웁니다."
     )
-    public List<UserMapDto.Response> getActiveUsers() {
-        return userMapService.getActiveUsers();
+    public List<UserMapDto.Response> getActiveUsers(@RequestParam Long userId) {
+        return userMapService.getActiveUsers(userId);
     }
 
     // 비밀번호 변경용 인증코드 발송
@@ -319,6 +325,28 @@ public class UserController {
                     request.getEmail(),
                     null
             ));
+        }
+    }
+
+    // 마이페이지_프로필수정_기존정보조회
+    @GetMapping("/api/users/info")
+        @Operation(summary = "마이페이지_프로필수정", description = "유저의 현재 프로필 사진, 이름, 학번, 이메일을 반환합니다.")
+    public MypageDto.InfoResponse getUserInfo(@RequestParam Long userId) {
+        return userService.getUserInfo(userId);
+    }
+
+    // 마이페이지_프로필수정_프로필사진업로드
+    @PutMapping(value = "/api/users/profile-image", consumes = "multipart/form-data")
+    @Operation(summary = "프로필 사진 수정", description = "이미지 파일을 업로드하여 프로필 사진을 변경합니다.")
+    public String updateProfileImage(
+            @RequestParam Long userId,
+            @RequestPart(value = "file") MultipartFile file
+    ) {
+        try {
+            return userService.updateProfileImage(userId, file);
+        } catch (IOException e) {
+            // 파일 저장 중 에러가 나면 500 에러 반환
+            throw new RuntimeException("파일 저장 실패", e);
         }
     }
 }
