@@ -65,4 +65,24 @@ public class BlockService {
                 ))
                 .collect(Collectors.toList());
     }
+
+    // 차단 해제
+    @Transactional
+    public String unblockUser(BlockDto.BlockRequest dto) {
+        // 사용자 조회
+        User blocker = userRepository.findById(dto.getBlockerId())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. (나)"));
+        User blocked = userRepository.findById(dto.getBlockedId())
+                .orElseThrow(() -> new IllegalArgumentException("차단 해제할 사용자를 찾을 수 없습니다. (상대방)"));
+
+        // 차단 여부 확인
+        if (!blockRepository.existsByBlockerAndBlocked(blocker, blocked)) {
+            throw new IllegalArgumentException("차단된 내역이 존재하지 않습니다.");
+        }
+
+        // 차단 내역 삭제
+        blockRepository.deleteByBlockerAndBlocked(blocker, blocked);
+
+        return "차단이 해제되었습니다. (본인 ID: " + blocker.getId() + ", 차단 해제한 상대방 ID: " + blocked.getId() + ")";
+    }
 }

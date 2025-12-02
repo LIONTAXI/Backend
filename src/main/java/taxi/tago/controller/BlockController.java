@@ -29,4 +29,11 @@ public class BlockController {
     public List<BlockDto.Response> getBlockList(@RequestParam Long blockerId) {
         return blockService.getBlockList(blockerId);
     }
+
+    // 차단 해제
+    @DeleteMapping("/api/blocks")
+    @Operation(summary = "차단 해제하기", description = "차단했던 사용자를 차단 해제합니다.")
+    public String unblockUser(@RequestBody BlockDto.BlockRequest dto) {
+        return blockService.unblockUser(dto);
+    }
 }
