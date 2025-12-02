@@ -12,6 +12,7 @@ import taxi.tago.service.User.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import taxi.tago.service.User.UserService;
 
 @RestController
 @RequestMapping("/api/auth/email")
