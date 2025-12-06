@@ -58,7 +58,7 @@ public class NotificationController {
             description = "최신 알림부터 내림차순으로 반환합니다. 페이지네이션을 지원합니다. (기본값: size=20, sort=createdAt, direction=DESC)"
     )
     public ResponseEntity<Page<NotificationDto>> getNotifications(
-            @RequestParam Long userId,
+            @RequestParam(name = "userId") Long userId,
             @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC)
             Pageable pageable
     ) {
@@ -84,7 +84,7 @@ public class NotificationController {
             summary = "미확인 알림 개수 조회",
             description = "벨 배지에 표시할 미확인 알림 개수를 조회합니다."
     )
-    public ResponseEntity<Long> getUnreadCount(@RequestParam Long userId) {
+    public ResponseEntity<Long> getUnreadCount(@RequestParam(name = "userId") Long userId) {
         long count = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(count);
     }
@@ -118,7 +118,7 @@ public class NotificationController {
             summary = "SSE 실시간 알림 스트림 연결",
             description = "클라이언트가 이 엔드포인트에 연결하면 서버에서 알림이 발생할 때마다 실시간으로 이벤트를 전송합니다."
     )
-    public SseEmitter streamNotifications(@RequestParam Long userId) {
+    public SseEmitter streamNotifications(@RequestParam(name = "userId") Long userId) {
         SseEmitter emitter = sseEmitters.create(userId);
         
         // 연결 즉시 초기 이벤트 전송 (연결 확인용)
@@ -152,8 +152,8 @@ public class NotificationController {
             description = "사용자가 알림 카드를 클릭하면 호출됩니다. read = true로 변경되어 UI에서 '읽은 알림' 스타일로 표시됩니다."
     )
     public ResponseEntity<Void> markAsRead(
-            @PathVariable Long id,
-            @RequestParam Long userId
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "userId") Long userId
     ) {
         notificationService.markAsRead(id, userId);
         return ResponseEntity.ok().build();

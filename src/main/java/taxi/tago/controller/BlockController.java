@@ -26,7 +26,7 @@ public class BlockController {
     // 내가 차단한 목록
     @GetMapping("/api/blocks")
     @Operation(summary = "차단 목록 조회", description = "내가 차단한 사용자 목록을 조회합니다. 프로필 사진, 이름, 학번(2자리) 포함")
-    public List<BlockDto.Response> getBlockList(@RequestParam Long blockerId) {
+    public List<BlockDto.Response> getBlockList(@RequestParam(name = "blockerId") Long blockerId) {
         return blockService.getBlockList(blockerId);
     }
 
