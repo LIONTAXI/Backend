@@ -41,7 +41,7 @@ out/
 
 ### .properties ###
 src/main/resources/application.properties
-src/main/resources/application-prod.properties
+src/main/resources/application-prod.yml
 src/main/resources/nginx-service.yml
 ### Environment Variables ###
 .env
