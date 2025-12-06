@@ -33,7 +33,7 @@ public class ChatRoomController {
                     """
     )
     public ResponseEntity<ChatRoomResponse> enterChatRoom(
-            @RequestParam Long taxiPartyId, // 어떤 택시팟의 채팅방인지
+            @RequestParam(name = "taxiPartyId") Long taxiPartyId, // 어떤 택시팟의 채팅방인지
             @AuthenticationPrincipal CustomUserDetails userDetails  // 로그인한 사용자 정보
     ) {
         Long userId = userDetails.getUserId(); // JWT에서 복원한 로그인 유저의 ID
@@ -77,7 +77,7 @@ public class ChatRoomController {
                     """
     )
     public ResponseEntity<String> closeChatRoom(
-            @PathVariable Long chatRoomId, // 어떤 채팅방을 끝낼지 식별하는 ID
+            @PathVariable(name = "chatRoomId") Long chatRoomId, // 어떤 채팅방을 끝낼지 식별하는 ID
             @AuthenticationPrincipal CustomUserDetails userDetails // JWT로부터 복원된 로그인 유저 정보
     ) {
         Long userId = userDetails.getUserId(); // 현재 로그인한 사용자의 PK
