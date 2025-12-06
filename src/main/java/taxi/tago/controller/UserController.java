@@ -112,7 +112,7 @@ public class UserController {
             summary = "현재 접속 중인 유저 조회",
             description = "마지막 활동 시간이 3분 이내인 모든 유저를 조회하여 지도 위에 마커로 띄웁니다."
     )
-    public List<UserMapDto.Response> getActiveUsers(@RequestParam Long userId) {
+    public List<UserMapDto.Response> getActiveUsers(@RequestParam(name = "userId") Long userId) {
         return userMapService.getActiveUsers(userId);
     }
 
@@ -331,7 +331,7 @@ public class UserController {
     // 마이페이지_프로필수정_기존정보조회
     @GetMapping("/api/users/info")
         @Operation(summary = "마이페이지_프로필수정", description = "유저의 현재 프로필 사진, 이름, 학번, 이메일을 반환합니다.")
-    public MypageDto.InfoResponse getUserInfo(@RequestParam Long userId) {
+    public MypageDto.InfoResponse getUserInfo(@RequestParam(name = "userId") Long userId) {
         return userService.getUserInfo(userId);
     }
 
@@ -339,7 +339,7 @@ public class UserController {
     @PutMapping(value = "/api/users/profile-image", consumes = "multipart/form-data")
     @Operation(summary = "프로필 사진 수정", description = "이미지 파일을 업로드하여 프로필 사진을 변경합니다.")
     public String updateProfileImage(
-            @RequestParam Long userId,
+            @RequestParam(name = "userId") Long userId,
             @RequestPart(value = "file") MultipartFile file
     ) {
         try {
