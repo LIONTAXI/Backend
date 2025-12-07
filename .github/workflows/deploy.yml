@@ -1,0 +1,54 @@
+name: Deploy Tago Backend to EC2
+
+on:
+  push:
+    branches: [ "main" ]   # main에 push될 때마다 배포
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) 레포 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) JDK 설정 (프로젝트에서 사용하는 버전에 맞게 17 또는 21)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3) Gradle 실행 권한 부여 (윈도우에서 커밋한 경우 대비)
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # 4) 빌드 (테스트는 일단 제외)
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      # 5) 빌드 결과 확인 (디버깅용)
+      - name: List build/libs
+        run: ls -al build/libs
+
+      # 6) EC2에 JAR 업로드 (scp)
+      - name: Copy jar to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "build/libs/tago-1.0.jar"
+          target: "${{ secrets.EC2_APP_DIR }}/tago.jar"
+
+      # 7) EC2에서 서비스 재시작
+      - name: Restart tago service on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo systemctl restart ${{ secrets.EC2_SERVICE_NAME }}
+            sudo systemctl status ${{ secrets.EC2_SERVICE_NAME }} --no-pager -n 20
