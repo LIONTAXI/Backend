@@ -41,6 +41,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "build/libs/tago-1.0.jar"
           target: "/home/ubuntu/tago/app"
+          strip_components: 2
 
       # 7) EC2에서 서비스 재시작
       - name: Restart tago service on EC2
