@@ -250,7 +250,7 @@ public class EmailAuthService {
                 message.setFrom(fromEmail);
             }
             message.setTo(to);
-            message.setSubject("[타고] 비밀번호 재설정 인증 코드");
+            message.setSubject("[슈슝] 비밀번호 재설정 인증 코드");
             message.setText("안녕하세요.\n\n" +
                     "비밀번호 재설정을 위한 인증 코드입니다.\n\n" +
                     "인증 코드: " + authCode + "\n\n" +
@@ -283,7 +283,7 @@ public class EmailAuthService {
                 message.setFrom(fromEmail);
             }
             message.setTo(email);
-            message.setSubject("[타고] 도서관 전자출입증 인증 반려 안내");
+            message.setSubject("[슈슝] 도서관 전자출입증 인증 반려 안내");
             message.setText("안녕하세요.\n\n" +
                     "도서관 전자출입증 인증 요청이 반려되었습니다.\n\n" +
                     "반려 사유: " + rejectionReason + "\n\n" +
