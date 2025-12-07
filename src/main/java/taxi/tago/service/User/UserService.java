@@ -98,7 +98,7 @@ public class UserService {
         user.setLastActiveAt(LocalDateTime.now());
         userRepository.save(user);
 
-        log.info("사용자 로그인 성공: {}", email);
+        log.info("사용자 로그인 성공!: {}", email);
         return user;
     }
 
