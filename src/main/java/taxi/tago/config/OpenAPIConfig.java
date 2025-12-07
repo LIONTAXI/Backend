@@ -47,7 +47,7 @@ public class OpenAPIConfig {
                                 .url("http://localhost:8080")
                                 .description("로컬 개발 서버"),
                         new Server()
-                                .url("https://production-server.com")
+                                .url("https://swushoong.click")
                                 .description("프로덕션 서버")
                 ));
     }
