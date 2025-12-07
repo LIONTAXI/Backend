@@ -209,8 +209,8 @@ public class EmailAuthService {
         try {
             // 실제 이메일 전송 (AWS SES 또는 설정된 SMTP 사용)
             SimpleMailMessage message = new SimpleMailMessage();
-            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소)
-            if (fromEmail != null && !fromEmail.isEmpty()) {
+            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소 또는 Gmail 등)
+            if (fromEmail != null && !fromEmail.isEmpty() && !fromEmail.equals("noreply@yourdomain.com")) {
                 message.setFrom(fromEmail);
             }
             message.setTo(to);
@@ -225,8 +225,10 @@ public class EmailAuthService {
             log.info("✅ 이메일 전송 성공: {} (인증 코드: {})", to, authCode);
         } catch (Exception e) {
             log.error("❌ 이메일 전송 실패: {} - {}", to, e.getMessage(), e);
-            // 운영 환경에서는 예외를 던지거나 재시도 로직을 추가할 수 있습니다.
-            // 현재는 로그만 출력하고 계속 진행 (콘솔 로그에 인증 코드가 출력되므로)
+            log.error("⚠️ 이메일 발송 실패했지만 인증 코드는 생성되었습니다. 콘솔 로그에서 인증 코드를 확인하거나 이메일 설정을 확인해주세요.");
+            log.error("⚠️ 인증 코드: {} (유효 시간: {}분)", authCode, expirationMinutes);
+            // 이메일 발송 실패해도 인증 코드는 생성되어 저장되므로, 사용자는 콘솔 로그를 확인하거나
+            // 이메일 설정(MAIL_USERNAME, MAIL_PASSWORD 환경 변수)을 확인하면 됩니다.
         }
     }
 
@@ -243,8 +245,8 @@ public class EmailAuthService {
         try {
             // 실제 이메일 전송 (AWS SES 또는 설정된 SMTP 사용)
             SimpleMailMessage message = new SimpleMailMessage();
-            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소)
-            if (fromEmail != null && !fromEmail.isEmpty()) {
+            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소 또는 Gmail 등)
+            if (fromEmail != null && !fromEmail.isEmpty() && !fromEmail.equals("noreply@yourdomain.com")) {
                 message.setFrom(fromEmail);
             }
             message.setTo(to);
@@ -259,6 +261,8 @@ public class EmailAuthService {
             log.info("✅ 비밀번호 변경용 이메일 전송 성공: {} (인증 코드: {})", to, authCode);
         } catch (Exception e) {
             log.error("❌ 비밀번호 변경용 이메일 전송 실패: {} - {}", to, e.getMessage(), e);
+            log.error("⚠️ 이메일 발송 실패했지만 인증 코드는 생성되었습니다. 콘솔 로그에서 인증 코드를 확인하거나 이메일 설정을 확인해주세요.");
+            log.error("⚠️ 인증 코드: {} (유효 시간: {}분)", authCode, expirationMinutes);
         }
     }
 
@@ -274,8 +278,8 @@ public class EmailAuthService {
         try {
             // 실제 이메일 전송 (AWS SES 또는 설정된 SMTP 사용)
             SimpleMailMessage message = new SimpleMailMessage();
-            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소)
-            if (fromEmail != null && !fromEmail.isEmpty()) {
+            // 발신자 주소 설정 (AWS SES 인증된 이메일 주소 또는 Gmail 등)
+            if (fromEmail != null && !fromEmail.isEmpty() && !fromEmail.equals("noreply@yourdomain.com")) {
                 message.setFrom(fromEmail);
             }
             message.setTo(email);
