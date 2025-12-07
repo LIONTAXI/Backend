@@ -214,7 +214,7 @@ public class EmailAuthService {
                 message.setFrom(fromEmail);
             }
             message.setTo(to);
-            message.setSubject("[타고] 회원가입 인증 코드");
+            message.setSubject("[슈슝] 회원가입 인증 코드");
             message.setText("안녕하세요.\n\n" +
                     "회원가입을 위한 인증 코드입니다.\n\n" +
                     "인증 코드: " + authCode + "\n\n" +
