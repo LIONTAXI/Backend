@@ -227,7 +227,13 @@ public class UserService {
         }
 
         // 2. 파일 저장 경로 설정 (프로젝트 내의 static/images 폴더)
-        String projectPath = System.getProperty("user.dir") + "\\src\\main\\resources\\static\\images\\";
+        // 경로가 윈도우 기준이라 os 호환되도록 수정함
+        String projectPath = System.getProperty("user.dir")
+                + File.separator + "src"
+                + File.separator + "main"
+                + File.separator + "resources"
+                + File.separator + "static"
+                + File.separator + "images";
 
         // 3. 파일 이름 중복 방지를 위한 UUID 생성
         UUID uuid = UUID.randomUUID();
