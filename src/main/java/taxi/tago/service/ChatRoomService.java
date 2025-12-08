@@ -27,6 +27,9 @@ public class ChatRoomService {
     private final TaxiPartyRepository taxiPartyRepository; // 택시팟 정보를 조회하기 위한 의존성
     private final TaxiUserRepository taxiUserRepository; // 택시팟 참졍자 정보를 조회하기 위한 의존성
 
+    // 공통 채팅 권한 검증 서비스
+    private final ChatMemberAccessService chatMemberAccessService;
+
     // 채팅방 입장/생성 메서드
     // 택시팟 ID와 유저 ID로 채팅방에 입장하거나 새로 생성함
     @Transactional // DB write가 필요하므로 트랜잭션 별도 지정
@@ -35,8 +38,12 @@ public class ChatRoomService {
         TaxiParty taxiParty = taxiPartyRepository.findById(taxiPartyId) // ID로 택시팟 조회
                 .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다. id = " + taxiPartyId)); // 400
 
-        // 현재 유저가 이 택시팟의 채팅방에 입장할 자격이 있는지 검증
-        validateChatMember(taxiParty, userId);
+        // 공통 서비스로 채팅 입장 자격 검증
+        boolean hasPermission = chatMemberAccessService.hasChatPermission(taxiParty, userId);
+        if (!hasPermission) {
+            // 기존 메시지 그대로 유지
+            throw new IllegalArgumentException("채팅방 입장 권한이 없습니다. 같이 타기 요청이 수락된 후에만 채팅방에 입장할 수 있습니다.");
+        }
 
         // 이미 이 택시팟에 연결된 채팅방이 있는지 조회
         Optional<ChatRoom> existingRoomOpt = chatRoomRepository.findByTaxiPartyId(taxiPartyId); // taxiPartyId 기준 조회
@@ -60,25 +67,6 @@ public class ChatRoomService {
 
         // PK가 채워진 영속 상태의 엔티티 반환
         return saved; // 컨트롤러나 WebSocket 핸들러에서 이 엔티티를 기반으로 응답에 사용
-    }
-
-    // 특정 택시팟 + 유저조합이 채팅방 입장 자격이 있는지 검증하는 내부 메서드 (권한 검증용 메서드)
-    private void validateChatMember(TaxiParty taxiParty, Long userId) {
-        // 택시팟의 총대슈니인지 먼저 확인
-        boolean isHost = taxiParty.getUser().getId().equals(userId); // TaxiParty에 연결된 User의 ID와 비교
-
-        // 동승슈니로 참여했는지 조회 (WAITING/ACCEPTED/기타 상태)
-        Optional<TaxiUser> taxiUserOpt = taxiUserRepository.findByTaxiPartyIdAndUserId(taxiParty.getId(), userId);
-
-        // ACCEPTED 상태의 동승슈니인지 여부 계산
-        boolean isAcceptedPassenger = taxiUserOpt // 조회 결과 Optional에서
-                .filter(taxiUser -> taxiUser.getStatus() == ParticipationStatus.ACCEPTED) // 상태가 ACCEPTED인 경우만 통과
-                .isPresent(); // 최종적으로 존재 여부를 boolean으로 반환
-
-        // 총대도 아니고 ACCEPTED 동승슈니도 아니라면 입장 권한 없음
-        if (!isHost && !isAcceptedPassenger) {
-            throw new IllegalArgumentException("채팅방 입장 권한이 없습니다. 같이 타기 요청이 수락된 후에만 채팅방에 입장할 수 있습니다."); // 400
-        }
     }
 
     // 내 채팅방 목록을 조회하는 메서드
