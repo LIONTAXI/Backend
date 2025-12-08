@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.WebSocketHandler;
@@ -31,10 +32,20 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             Map<String, Object> attributes
     ) {
         try {
-            HttpHeaders headers = (request).getHeaders();
-            String bearerToken = headers.getFirst(HttpHeaders.AUTHORIZATION);
+            String token = null;
 
-            String token = resolveToken(bearerToken);
+            // Authorization 헤더 시도
+            HttpHeaders headers = request.getHeaders();
+            String bearerToken = headers.getFirst(HttpHeaders.AUTHORIZATION);
+            token = resolveToken(bearerToken);
+
+            // 헤더에 없으면 ?token=... 쿼리 파라미터에서 시도
+            if (token == null && request instanceof ServletServerHttpRequest servletRequest) {
+                String paramToken = servletRequest.getServletRequest().getParameter("token");
+                if (StringUtils.hasText(paramToken)) {
+                    token = paramToken;
+                }
+            }
 
             if (token != null && jwtUtil.validateToken(token)) {
                 String email = jwtUtil.getEmailFromToken(token);
