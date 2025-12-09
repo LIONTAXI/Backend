@@ -13,5 +13,6 @@ public class EmailAuthResponse {
     private boolean success;
     private String message;
     private String email; // 응답에 이메일 포함 (선택사항)
+    private String token;
 }
 

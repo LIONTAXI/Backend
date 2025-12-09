@@ -9,5 +9,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class EmailAuthRequest {
     private String email;
+    private String code;
 }
 
