@@ -49,7 +49,7 @@ public class SettlementService {
 
         // 이미 정산이 생성되어 있는지 체크 (택시팟과 1:1 관계이므로)
         settlementRepository.findByTaxiParty(taxiParty).ifPresent(s -> {
-            throw new IllegalArgumentException("이미 정산이 생성된 택시팟입니다. settlementId = " + request.getSettlementId());
+            throw new IllegalArgumentException("이미 정산이 생성된 택시팟입니다. settlementId = " + s.getId());
         });
 
         // Settlement 엔티티 생성
