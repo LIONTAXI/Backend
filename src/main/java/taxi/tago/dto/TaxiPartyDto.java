@@ -5,15 +5,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalTime;
 
 public class TaxiPartyDto {
 
     @Getter
+    @Setter
     @NoArgsConstructor
     public static class CreateRequest {
-        @Schema(description = "총대슈니 ID", example = "1")
+        @Schema(hidden = true)
         private Long userId;
 
         @Schema(description = "승차지", example = "화랑대역 2번출구")
@@ -72,6 +74,7 @@ public class TaxiPartyDto {
     }
 
     @Getter
+    @Setter
     @NoArgsConstructor
     public static class UpdateRequest {
         private Long userId;
