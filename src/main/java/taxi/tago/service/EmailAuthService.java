@@ -111,6 +111,17 @@ public class EmailAuthService {
     public void removeVerifiedEmail(String email) {
         verifiedEmails.remove(email);
     }
+    
+    // 회원가입 플로우에서 이메일 인증 완료된 이메일 조회 (도서관 인증 시 사용)
+    public String getVerifiedEmailForRegistration() {
+        // verifiedEmails Map에서 true인 이메일 하나만 반환 (회원가입 플로우에서는 하나만 있어야 함)
+        for (Map.Entry<String, Boolean> entry : verifiedEmails.entrySet()) {
+            if (entry.getValue()) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
 
     // 비밀번호 변경용 인증 코드 생성 및 이메일 전송
     public void sendPasswordResetCode(String email) {
