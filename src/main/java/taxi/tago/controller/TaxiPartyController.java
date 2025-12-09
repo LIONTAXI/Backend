@@ -68,6 +68,10 @@ public class TaxiPartyController {
 
     // 택시팟 정보 - 동승슈니 - 같이 타기
     @PostMapping("/api/taxi-party/{partyId}/participation")
+    @Operation(
+            summary = "택시팟 정보 - 동승슈니 - 같이 타기",
+            description = "총대슈니에게 같이 타기 요청을 보냅니다."
+    )
     public String applyTaxiParty(
             @PathVariable Long partyId,
             @AuthenticationPrincipal CustomUserDetails userDetails
