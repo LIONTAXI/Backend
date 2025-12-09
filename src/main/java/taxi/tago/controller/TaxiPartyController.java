@@ -86,8 +86,11 @@ public class TaxiPartyController {
             summary = "총대슈니 - 택시팟 참여 요청 조회",
             description = "총대슈니가 해당 택시팟 글에 들어온 모든 같이 타기 요청을 확인합니다. 수락 이후에도 목록에 표시됩니다."
     )
-    public List<TaxiUserDto.RequestResponse> getJoinRequests(@PathVariable(name = "partyId") Long partyId) {
-        return taxiPartyService.getJoinRequests(partyId);
+    public List<TaxiUserDto.RequestResponse> getJoinRequests(
+            @PathVariable Long partyId,
+            @AuthenticationPrincipal CustomUserDetails userDetails // 추가
+    ) {
+        return taxiPartyService.getJoinRequests(partyId, userDetails.getUserId());
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 수락
@@ -96,8 +99,11 @@ public class TaxiPartyController {
             summary = "총대슈니 - 택시팟 참여 요청 수락",
             description = "총대슈니가 특정 동승슈니에 대해 같이 타기 요청을 수락합니다. 해당 동승슈니는 이제 채팅방에 입장할 수 있습니다."
     )
-    public String acceptJoinRequest(@PathVariable(name = "taxiUserId") Long taxiUserId) {
-        return taxiPartyService.acceptJoinRequest(taxiUserId);
+    public String acceptJoinRequest(
+            @PathVariable Long taxiUserId,
+            @AuthenticationPrincipal CustomUserDetails userDetails // 추가
+    ) {
+        return taxiPartyService.acceptJoinRequest(taxiUserId, userDetails.getUserId());
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 매칭 종료
