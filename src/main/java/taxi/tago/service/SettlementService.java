@@ -9,6 +9,7 @@ import taxi.tago.entity.*;
 import taxi.tago.repository.*;
 
 import org.springframework.security.access.AccessDeniedException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -302,5 +303,37 @@ public class SettlementService {
                 .reduce((a, b) -> null) // 서로 다른 값이 두 개 이상이면 null
                 .orElseGet(() -> settlement.getParticipants().isEmpty()
                         ? null : settlement.getParticipants().get(0).getAmount());
+    }
+
+    // 이미 생성되어 있는 정산에 대해, "현재 로그인한 유저가 속해있는 settlementId"를 조회하는 메서드
+    @Transactional(readOnly = true)
+    public SettlementDto.SettlementResponse getMySettlementId(Long taxiPartyId, Long userId) {
+        // 택시팟 존재 여부 확인
+        TaxiParty taxiParty = taxiPartyRepository.findById(taxiPartyId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "해당 택시팟을 찾을 수 없습니다. id = " + taxiPartyId
+                ));
+
+        // 해당 택시팟에 정산이 생성되어 있는지 조회
+        return settlementRepository.findByTaxiParty(taxiParty)
+                .map(settlement -> {
+                    // 정산은 있는 상태에서, 현재 유저가 이 정산의 구성원인지 검사
+                    boolean isHost = settlement.getHost().getId().equals(userId);
+
+                    boolean isParticipant = settlement.getParticipants().stream()
+                            .anyMatch(p -> p.getUser().equals(userId));
+
+                    if (!isHost && !isParticipant) {
+                        // 정산은 있지만 이 유저는 관련이 없는 경우 -> 권한 없음
+                        throw new IllegalArgumentException("해당 정산에 참여한 슈니만 settlementId를 조회할 수 있습니다.");
+                    }
+
+                    // 정산이 존재하며 유저도 해당 택시팟의 멤버가 맞는 경우 반환
+                    return new SettlementDto.SettlementResponse(true, settlement.getId());
+                })
+                .orElseGet(() ->
+                        // 아직 이 택시팟에 대해 정산이 생성되지 않은 경우 -> hasSettlement = false, settlementId = null
+                        new SettlementDto.SettlementResponse(false, null)
+                );
     }
 }
