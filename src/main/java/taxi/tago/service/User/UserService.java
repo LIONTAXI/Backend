@@ -31,11 +31,13 @@ public class UserService {
      * @param email 웹메일 (아이디)
      * @param password 비밀번호
      * @param confirmPassword 비밀번호 확인
+     * @param studentId 학번 (도서관 전자출입증 인증으로 추출된 학번)
+     * @param name 이름 (도서관 전자출입증 인증으로 추출된 이름)
      * @return 생성된 User 객체
      * @throws IllegalArgumentException 유효성 검증 실패 시
      */
     @Transactional
-    public User register(String email, String password, String confirmPassword) {
+    public User register(String email, String password, String confirmPassword, String studentId, String name) {
         // 1. 이메일 인증 완료 여부 확인
         if (!emailAuthService.isEmailVerified(email)) {
             throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다. 먼저 이메일 인증을 완료해주세요.");
@@ -57,22 +59,33 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 5. 비밀번호 암호화 및 사용자 생성
+        // 5. 도서관 전자출입증 인증 필수 확인
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("도서관 전자출입증 인증이 완료되지 않았습니다. 전자출입증을 등록해주세요.");
+        }
+
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("도서관 전자출입증 인증이 완료되지 않았습니다. 전자출입증을 등록해주세요.");
+        }
+
+        // 6. 비밀번호 암호화 및 사용자 생성
         String encodedPassword = passwordEncoder.encode(password);
         
         User user = new User();
         user.setEmail(email);
         user.setPassword(encodedPassword);
+        user.setStudentId(studentId.trim());
+        user.setName(name.trim());
         user.setLastActiveAt(LocalDateTime.now());
         user.setImgUrl("/images/default.svg");
 
-        // 6. 사용자 저장
+        // 7. 사용자 저장 (PrePersist에서 shortStudentId 자동 추출됨)
         User savedUser = userRepository.save(user);
         
-        // 7. 인증 완료 상태 제거 (이미 사용됨)
+        // 8. 인증 완료 상태 제거 (이미 사용됨)
         emailAuthService.removeVerifiedEmail(email);
         
-        log.info("회원가입 완료: {}", email);
+        log.info("회원가입 완료: {}, 학번: {}, 이름: {}", email, studentId, name);
         return savedUser;
     }
 
