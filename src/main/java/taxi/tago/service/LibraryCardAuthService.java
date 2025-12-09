@@ -66,8 +66,8 @@ public class LibraryCardAuthService {
         }
     }
 
-    // 도서관 전자출입증 이미지를 OCR로 처리 (회원가입 전용, 이메일과 연결하여 임시 저장)
-    public LibraryCardAuthResult processLibraryCardImage(String email, MultipartFile imageFile) {
+    // 도서관 전자출입증 이미지를 OCR로 처리 (회원가입 전용, 이메일 인증 완료된 이메일과 연결하여 임시 저장)
+    public LibraryCardAuthResult processLibraryCardImage(MultipartFile imageFile) {
         try {
             // 1. 이미지 파일 검증
             if (imageFile == null || imageFile.isEmpty()) {
@@ -104,18 +104,22 @@ public class LibraryCardAuthService {
                 );
             }
 
-            // 5. 이메일과 연결하여 인증 정보 임시 저장 (30분 유효)
-            if (email != null && !email.trim().isEmpty()) {
-                libraryCardAuthStorage.put(email, new LibraryCardAuthInfo(
-                    extractedName.trim(),
-                    extractedStudentId.trim(),
-                    LocalDateTime.now()
-                ));
-                log.info("도서관 전자출입증 인증 정보 임시 저장: email={}, name={}, studentId={}", 
-                    email, extractedName, extractedStudentId);
+            // 5. 이메일 인증 완료된 이메일 찾기 (회원가입 플로우에서 하나만 있어야 함)
+            String verifiedEmail = emailAuthService.getVerifiedEmailForRegistration();
+            if (verifiedEmail == null) {
+                return LibraryCardAuthResult.failure("이메일 인증이 완료되지 않았습니다. 먼저 이메일 인증을 완료해주세요.");
             }
 
-            // 6. OCR 인식 성공
+            // 6. 이메일과 연결하여 인증 정보 임시 저장 (30분 유효)
+            libraryCardAuthStorage.put(verifiedEmail, new LibraryCardAuthInfo(
+                extractedName.trim(),
+                extractedStudentId.trim(),
+                LocalDateTime.now()
+            ));
+            log.info("도서관 전자출입증 인증 정보 임시 저장: email={}, name={}, studentId={}", 
+                verifiedEmail, extractedName, extractedStudentId);
+
+            // 7. OCR 인식 성공
             log.info("도서관 전자출입증 OCR 인식 성공: name={}, studentId={}", extractedName, extractedStudentId);
 
             return LibraryCardAuthResult.success(
