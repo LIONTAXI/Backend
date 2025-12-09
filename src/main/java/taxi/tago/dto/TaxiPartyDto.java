@@ -13,9 +13,6 @@ public class TaxiPartyDto {
     @Getter
     @NoArgsConstructor
     public static class CreateRequest {
-        @Schema(description = "총대슈니 ID", example = "1")
-        private Long userId;
-
         @Schema(description = "승차지", example = "화랑대역 2번출구")
         private String departure;
 

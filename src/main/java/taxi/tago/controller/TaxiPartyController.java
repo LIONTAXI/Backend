@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.TaxiPartyDto;
 import taxi.tago.dto.TaxiUserDto;
 import taxi.tago.service.TaxiPartyService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import taxi.tago.security.CustomUserDetails;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,12 +53,15 @@ public class TaxiPartyController {
 
     // 택시팟 정보 - 동승슈니 - 같이 타기
     @PostMapping("/api/taxi-party/{partyId}/participation")
-    @Operation(
-            summary = "동승슈니 - 같이 타기",
-            description = "택시팟 정보 페이지에서 동승슈니가 같이 타기 요청을 보냅니다."
-    )
-    public String applyTaxiParty(@PathVariable(name = "partyId") Long partyId, @RequestBody TaxiPartyDto.CreateRequest request) {
-        return taxiPartyService.applyTaxiParty(partyId, request.getUserId());
+    public String applyTaxiParty(
+            @PathVariable Long partyId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            throw new IllegalArgumentException("로그인이 필요한 서비스입니다.");
+        }
+
+        return taxiPartyService.applyTaxiParty(partyId, userDetails.getUserId());
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
