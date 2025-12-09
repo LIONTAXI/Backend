@@ -178,10 +178,15 @@ public class TaxiPartyService {
         TaxiUser taxiUser = new TaxiUser(party, user);
         taxiUserRepository.save(taxiUser);
 
-        // 총대에게 참여 요청 알림 보내기
+        // 알림 전송
         Long hostId = party.getUser().getId();
         String requesterName = user.getName() != null ? user.getName() : "동승슈니";
-        notificationService.sendTaxiParticipationRequest(hostId, partyId, requesterName);
+
+        try {
+            notificationService.sendTaxiParticipationRequest(hostId, partyId, requesterName);
+        } catch (Exception e) {
+            System.err.println("알림 전송 중 오류 발생 (같이타기 요청은 성공): " + e.getMessage());
+        }
 
         return "같이 타기 요청이 완료되었습니다.";
     }
