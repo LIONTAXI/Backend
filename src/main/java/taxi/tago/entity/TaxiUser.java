@@ -39,4 +39,8 @@ public class TaxiUser {
         this.user = user;
         this.status = ParticipationStatus.WAITING;
     }
+
+    public void changeStatus(ParticipationStatus newStatus) {
+        this.status = newStatus;
+    }
 }
