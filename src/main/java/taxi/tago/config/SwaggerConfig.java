@@ -5,8 +5,11 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
@@ -17,7 +20,7 @@ public class SwaggerConfig {
         String jwt = "JWT";
         SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwt);
 
-        // 2. Components 설정
+        // Components 설정
         Components components = new Components().addSecuritySchemes(jwt, new SecurityScheme()
                 .name(jwt)
                 .type(SecurityScheme.Type.HTTP)
@@ -28,7 +31,11 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .components(components)
                 .info(apiInfo())
-                .addSecurityItem(securityRequirement);
+                .addSecurityItem(securityRequirement)
+                .servers(List.of(
+                        new Server().url("https://swushoong.click").description("배포 서버 (HTTPS)"),
+                        new Server().url("http://localhost:8080").description("로컬 서버")
+                ));
     }
 
     private Info apiInfo() {
