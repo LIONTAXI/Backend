@@ -4,15 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import taxi.tago.dto.Email.EmailAuthRequest;
 import taxi.tago.dto.Email.EmailAuthResponse;
-import taxi.tago.dto.Password.PasswordSetRequest;
 import taxi.tago.service.EmailAuthService;
+import taxi.tago.service.LibraryCardAuthService;
+import taxi.tago.service.LibraryCardAuthService.LibraryCardAuthResult;
 import taxi.tago.service.User.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import taxi.tago.service.User.UserService;
 
 @RestController
 @RequestMapping("/api/auth/email")
@@ -22,6 +23,7 @@ public class EmailAuthController {
 
     private final EmailAuthService emailAuthService;
     private final UserService userService;
+    private final LibraryCardAuthService libraryCardAuthService;
 
     // 인증 코드 전송
     @PostMapping("/send")
@@ -152,16 +154,20 @@ public class EmailAuthController {
         }
     }
 
-    // 비밀번호 설정
-    @PostMapping("/set-password")
+    // 비밀번호 설정 및 회원가입 (도서관 전자출입증 인증 필수)
+    @PostMapping(value = "/set-password", consumes = "multipart/form-data")
     @Operation(
             summary = "비밀번호 설정 및 회원가입",
-            description = "이메일 인증이 완료된 사용자의 비밀번호를 설정하고 회원가입을 완료합니다."
+            description = "이메일 인증이 완료된 사용자의 비밀번호를 설정하고 도서관 전자출입증 인증을 통해 회원가입을 완료합니다."
     )
-    public ResponseEntity<EmailAuthResponse> setPassword(@RequestBody PasswordSetRequest request) {
+    public ResponseEntity<EmailAuthResponse> setPassword(
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("confirmPassword") String confirmPassword,
+            @RequestParam("libraryCardImage") MultipartFile libraryCardImage) {
         try {
             // 입력값 검증
-            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            if (email == null || email.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "이메일을 입력해주세요.",
@@ -170,45 +176,72 @@ public class EmailAuthController {
                 ));
             }
 
-            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            if (password == null || password.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "비밀번호를 입력해주세요.",
-                        request.getEmail(),
+                        email,
                         null
                 ));
             }
 
-            if (request.getConfirmPassword() == null || request.getConfirmPassword().trim().isEmpty()) {
+            if (confirmPassword == null || confirmPassword.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "비밀번호 확인을 입력해주세요.",
-                        request.getEmail(),
+                        email,
                         null
                 ));
             }
 
-            // 회원가입 처리 (JWT 토큰은 로그인 시에만 발급)
-            userService.register(request.getEmail(), request.getPassword(), request.getConfirmPassword());
+            if (libraryCardImage == null || libraryCardImage.isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "도서관 전자출입증 이미지를 등록해주세요.",
+                        email,
+                        null
+                ));
+            }
+
+            // 도서관 전자출입증 OCR 처리
+            LibraryCardAuthResult authResult = libraryCardAuthService.processLibraryCardImage(libraryCardImage);
+            
+            if (!authResult.isSuccess()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        authResult.getMessage(),
+                        email,
+                        null
+                ));
+            }
+
+            // 회원가입 처리 (학번과 이름 포함)
+            userService.register(
+                    email, 
+                    password, 
+                    confirmPassword,
+                    authResult.getExtractedStudentId(),
+                    authResult.getExtractedName()
+            );
 
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
                     "회원가입이 완료되었습니다.",
-                    request.getEmail(),
+                    email,
                     null
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new EmailAuthResponse(
                     false,
                     e.getMessage(),
-                    request.getEmail(),
+                    email,
                     null
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "회원가입에 실패했습니다: " + e.getMessage(),
-                    request.getEmail(),
+                    email,
                     null
             ));
         }
