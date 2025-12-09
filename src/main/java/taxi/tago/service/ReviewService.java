@@ -92,6 +92,85 @@ public class ReviewService {
         return saved.getId();
     }
 
+    // 채팅창 메뉴 페이지 하단에서 "사용자 목록" 페이지 화면에 보여줄 데이터 조회 메서드
+    @Transactional(readOnly = true)
+    public List<ReviewDto.MemberReviewStatus> getMemberReviewStatusList(Long taxiPartyId, Long currentUserId) {
+        // 택시팟 조회
+        TaxiParty taxiParty = taxiPartyRepository.findById(taxiPartyId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "해당 택시팟을 찾을 수 없습니다. id = " + taxiPartyId
+                ));
+        // 현재 유저가 이 택시팟 멤버인지 먼저 검증
+        validateMemberOfTaxiParty(taxiParty, currentUserId);
+
+        // 택시팟의 총대 + ACCEPTED 동승 멤버 모두 조회
+        List<User> members = getAllMembersOfTaxiParty(taxiParty);
+
+        // 각 멤버에 대해 현재 유저가 이미 리뷰를 작성했는지 여부를 계산
+        List<ReviewDto.MemberReviewStatus> result = new ArrayList<>();
+
+        for (User member : members) {
+            boolean isHost = taxiParty.getUser().getId().equals(member.getId());
+
+            // 자기 자신에겐 reviewWritten = false로 내려주기
+            boolean reviewWritten = false;
+
+            if (!member.getId().equals(currentUserId)) {
+                // 현재 유저가 이 멤버에게 이미 리뷰를 작성했는지 확인
+                reviewWritten = reviewRepository.existsByTaxiPartyIdAndReviewerIdAndRevieweeId(
+                        taxiPartyId,
+                        currentUserId,
+                        member.getId()
+                );
+            }
+
+            ReviewDto.MemberReviewStatus dto = new ReviewDto.MemberReviewStatus(
+                    member.getId(),
+                    member.getName(),
+                    member.getShortStudentId(),
+                    member.getImgUrl(),
+                    isHost,
+                    reviewWritten
+            );
+            result.add(dto);
+        }
+
+        return result;
+    }
+
+    // 프로필 화면에서 사용하는 요약 정보 조회 메서드
+    @Transactional(readOnly = true)
+    public ReviewDto.ProfileSummaryResponse getProfileSummary(Long targetUserId) {
+        // 프로필 대상 유저 기본 정보 조회
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "사용자를 찾을 수 없습니다. id = " + targetUserId
+                ));
+
+        // 재매칭 희망률 계산
+        Long totalReviews = reviewRepository.countTotalReviews(targetUserId);
+        Long positiveMatchCount = reviewRepository.countPositiveMatchPreference(targetUserId);
+
+        Integer matchPreferenceRate = null;
+        if (totalReviews != null && totalReviews > 0) {
+            // (다시 만나고 싶어요 개수 / 전체 리뷰 수) * 100
+            double rate = (positiveMatchCount.doubleValue() / totalReviews.doubleValue()) * 100.0;
+            // 소수점 반올림해서 정수로 변환
+            matchPreferenceRate = (int) Math.round(rate);
+        }
+
+        // 미정산 이력 개수 계산
+        Long unpaidCountLong = settlementParticipantRepository.countByUserIdAndPaidFalse(targetUserId);
+        Integer unpaidCount = unpaidCountLong != null ? unpaidCountLong.intValue() : 0;
+
+        // 긍정 태그 / 부정 태그 카운트 조회
+        List<ReviewDto.TagCount> positiveTagCounts =
+                toTagCountList(reviewRepository.countPositiveTags(targetUserId));
+        List<ReviewDto.TagCount> negativeTagCounts =
+                toTagCountList(reviewRepository.countNegativeTags(targetUserId));
+
+    }
+
 
     /* 내부 유틸 메서드 */
 
