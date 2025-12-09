@@ -20,21 +20,27 @@ public class LibraryCardAuthController {
 
     private final LibraryCardAuthService libraryCardAuthService;
 
-    /**
-     * 도서관 전자출입증 이미지 업로드 및 OCR 인식
-     * 
-     * @param imageFile 전자출입증 이미지 파일 (JPG, PNG) - 필수 파라미터
-     * @return OCR 인식 결과 (이름, 학번 추출 결과)
-     */
+    // 도서관 전자출입증 이미지 업로드 및 OCR 인식 (회원가입 전용, 이메일과 연결하여 임시 저장)
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     @Operation(
             summary = "도서관 전자출입증 이미지 업로드 및 OCR 인식",
-            description = "도서관 전자출입증 이미지를 업로드하고 OCR을 통해 이름과 학번을 자동으로 추출합니다."
+            description = "도서관 전자출입증 이미지를 업로드하고 OCR을 통해 이름과 학번을 자동으로 추출합니다. 회원가입 플로우에서 이메일 인증 완료 후 사용하며, 인증 정보를 이메일과 연결하여 임시 저장합니다."
     )
     public ResponseEntity<LibraryCardAuthResponse> uploadLibraryCard(
+            @RequestParam(name = "email", required = true) String email,
             @RequestParam(name = "image", required = true) MultipartFile imageFile) {
         
         try {
+            // 이메일 입력 검증
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new LibraryCardAuthResponse(
+                    false,
+                    "이메일을 입력해주세요.",
+                    null,
+                    null
+                ));
+            }
+            
             // 이미지 파일 검증
             if (imageFile == null || imageFile.isEmpty()) {
                 return ResponseEntity.badRequest().body(new LibraryCardAuthResponse(
@@ -59,8 +65,8 @@ public class LibraryCardAuthController {
                 ));
             }
 
-            // OCR 처리
-            LibraryCardAuthResult result = libraryCardAuthService.processLibraryCardImage(imageFile);
+            // OCR 처리 (이메일과 연결하여 임시 저장)
+            LibraryCardAuthResult result = libraryCardAuthService.processLibraryCardImage(email, imageFile);
 
             LibraryCardAuthResponse response = new LibraryCardAuthResponse(
                 result.isSuccess(),
@@ -85,25 +91,17 @@ public class LibraryCardAuthController {
         }
     }
 
-    /**
-     * 수동 인증 요청 제출 (사진, 이름, 학번을 받아서 승인 대기 상태로 저장)
-     * 
-     * @param userId 사용자 ID (이메일 또는 숫자 ID) - 필수 파라미터
-     * @param imageFile 전자출입증 이미지 파일 (JPG, PNG) - 필수 파라미터
-     * @param name 사용자가 입력한 이름 - 필수 파라미터
-     * @param studentId 사용자가 입력한 학번 (10자리 숫자) - 필수 파라미터
-     * @return 인증 요청 결과
-     */
+    // 수동 인증 요청 제출 API
     @PostMapping(value = "/submit", consumes = "multipart/form-data")
     @Operation(
             summary = "수동 인증 요청 제출",
             description = "사진, 이름, 학번을 받아서 승인 대기 상태로 저장합니다. 관리자가 승인/반려 처리합니다."
     )
     public ResponseEntity<LibraryCardAuthResponse> submitManualAuth(
-            @RequestParam(name = "userId", required = true) String userId,
-            @RequestParam(name = "image", required = true) MultipartFile imageFile,
-            @RequestParam(name = "name", required = true) String name,
-            @RequestParam(name = "studentId", required = true) String studentId) {
+            @RequestParam(name = "userId", required = true) String userId, // 사용자 ID (이메일 또는 숫자 ID)
+            @RequestParam(name = "image", required = true) MultipartFile imageFile, // 전자출입증 이미지 파일 (JPG, PNG)
+            @RequestParam(name = "name", required = true) String name, // 사용자가 입력한 이름
+            @RequestParam(name = "studentId", required = true) String studentId) { // 사용자가 입력한 학번 (10자리 숫자)
         
         try {
             // 이미지 파일 형식 검증
