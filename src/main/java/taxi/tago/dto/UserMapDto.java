@@ -9,7 +9,7 @@ public class UserMapDto {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class UpdateRequest {
+    public static class MapUpdateRequest {
         @Schema(hidden = true)
         private Long userId;
         @Schema(description = "위도", example = "37.619812")

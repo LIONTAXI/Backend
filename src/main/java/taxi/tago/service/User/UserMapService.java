@@ -28,7 +28,7 @@ public class UserMapService {
 
     // 유저 위치 및 마지막 활동 시간 업데이트
     @Transactional
-    public void userMapUpdate(UserMapDto.UpdateRequest dto) {
+    public void userMapUpdate(UserMapDto.MapUpdateRequest dto) {
         // userId로 유저 찾기
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다. id=" + dto.getUserId()));
