@@ -1,5 +1,6 @@
 package taxi.tago.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 public class UserMapDto {
@@ -9,8 +10,11 @@ public class UserMapDto {
     @Setter
     @NoArgsConstructor
     public static class UpdateRequest {
+        @Schema(hidden = true)
         private Long userId;
+        @Schema(description = "위도", example = "37.619812")
         private Double latitude;
+        @Schema(description = "경도", example = "127.077598")
         private Double longitude;
     }
 

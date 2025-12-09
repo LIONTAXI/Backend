@@ -77,6 +77,7 @@ public class TaxiPartyDto {
     @Setter
     @NoArgsConstructor
     public static class UpdateRequest {
+        @Schema(hidden = true)
         private Long userId;
         private String departure;       // 승차지
         private String destination;     // 하차지
