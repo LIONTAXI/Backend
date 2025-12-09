@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import taxi.tago.security.JwtAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -38,10 +39,11 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html"
                         ).permitAll() // 로그인 및 인증 관련 엔드포인트, Swagger UI는 인증 불필요
+                        .requestMatchers(HttpMethod.GET, "/api/taxi-party/**").permitAll()
+                        .requestMatchers("/api/taxi-party/**").authenticated()
                         .requestMatchers(
                                 "/api/chat/**",
                                 "/api/settlements/**",
-                                "/api/taxi-party/**",
                                 "/api/reviews/**"
                         ).authenticated() // 인증 필요
                         .anyRequest().permitAll() // 현재는 모든 요청 허용 (필요시 인증 필요로 변경 가능)
