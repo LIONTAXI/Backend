@@ -12,9 +12,11 @@ import taxi.tago.entity.TaxiParty;
 import taxi.tago.entity.TaxiUser;
 import taxi.tago.entity.User;
 import taxi.tago.repository.BlockRepository;
+import taxi.tago.repository.ChatRoomRepository;
 import taxi.tago.repository.TaxiPartyRepository;
 import taxi.tago.repository.TaxiUserRepository;
 import taxi.tago.repository.UserRepository;
+import taxi.tago.service.NotificationService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +31,8 @@ public class TaxiPartyService {
     private final UserRepository userRepository;
     private final TaxiUserRepository taxiUserRepository;
     private final BlockRepository blockRepository;
+    private final NotificationService notificationService;
+    private final ChatRoomRepository chatRoomRepository;
 
     // 이모지 20개 리스트
     private static final List<String> EMOJI_LIST = Arrays.asList(
@@ -174,6 +178,11 @@ public class TaxiPartyService {
         TaxiUser taxiUser = new TaxiUser(party, user);
         taxiUserRepository.save(taxiUser);
 
+        // 총대에게 참여 요청 알림 보내기
+        Long hostId = party.getUser().getId();
+        String requesterName = user.getName() != null ? user.getName() : "동승슈니";
+        notificationService.sendTaxiParticipationRequest(hostId, partyId, requesterName);
+
         return "같이 타기 요청이 완료되었습니다.";
     }
 
@@ -209,7 +218,22 @@ public class TaxiPartyService {
         TaxiParty party = taxiUser.getTaxiParty();
         party.setCurrentParticipants(party.getCurrentParticipants() + 1);
 
+        // 수락된 동승슈니에게 알림 보내기
         Long acceptedUserId = taxiUser.getUser().getId();
+        Long taxiPartyId = party.getId();
+        
+        // 채팅방 ID 조회 (채팅방이 없을 수도 있으므로 Optional 처리)
+        Long roomId = chatRoomRepository.findByTaxiPartyId(taxiPartyId)
+                .map(room -> room.getId())
+                .orElse(null); // 채팅방이 없으면 null
+        
+        String hostName = party.getUser().getName() != null ? party.getUser().getName() : "총대슈니";
+        
+        // 채팅방이 존재하는 경우에만 알림 전송 (채팅방이 없으면 roomId가 null이므로 알림은 보내지 않음)
+        if (roomId != null) {
+            notificationService.sendTaxiParticipationAccepted(acceptedUserId, roomId, hostName);
+        }
+
         return "같이 타기 요청 수락 성공, 수락한 동승슈니 ID: " + acceptedUserId;
     }
 
