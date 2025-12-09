@@ -15,7 +15,9 @@ import taxi.tago.service.NaverOcrService.OcrResult;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -31,13 +33,41 @@ public class LibraryCardAuthService {
 
     // 서울여대 학번 패턴: 10자리 숫자 (예: 2021111222)
     private static final Pattern SWU_STUDENT_ID_PATTERN = Pattern.compile("^\\d{10}$");
+    
+    // 이메일별 도서관 인증 정보 임시 저장 (회원가입 전용, 30분 유효)
+    private final Map<String, LibraryCardAuthInfo> libraryCardAuthStorage = new ConcurrentHashMap<>();
+    
+    // 도서관 인증 정보를 저장하는 내부 클래스
+    public static class LibraryCardAuthInfo {
+        private final String name;
+        private final String studentId;
+        private final LocalDateTime createdAt;
+        
+        public LibraryCardAuthInfo(String name, String studentId, LocalDateTime createdAt) {
+            this.name = name;
+            this.studentId = studentId;
+            this.createdAt = createdAt;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public String getStudentId() {
+            return studentId;
+        }
+        
+        public LocalDateTime getCreatedAt() {
+            return createdAt;
+        }
+        
+        public boolean isExpired(int expirationMinutes) {
+            return LocalDateTime.now().isAfter(createdAt.plusMinutes(expirationMinutes));
+        }
+    }
 
-    /**
-     * 도서관 전자출입증 이미지를 OCR로 처리 (userId 없이 이미지만 등록)
-     * @param imageFile 이미지 파일
-     * @return OCR 인식 결과
-     */
-    public LibraryCardAuthResult processLibraryCardImage(MultipartFile imageFile) {
+    // 도서관 전자출입증 이미지를 OCR로 처리 (회원가입 전용, 이메일과 연결하여 임시 저장)
+    public LibraryCardAuthResult processLibraryCardImage(String email, MultipartFile imageFile) {
         try {
             // 1. 이미지 파일 검증
             if (imageFile == null || imageFile.isEmpty()) {
@@ -74,7 +104,18 @@ public class LibraryCardAuthService {
                 );
             }
 
-            // 5. OCR 인식 성공
+            // 5. 이메일과 연결하여 인증 정보 임시 저장 (30분 유효)
+            if (email != null && !email.trim().isEmpty()) {
+                libraryCardAuthStorage.put(email, new LibraryCardAuthInfo(
+                    extractedName.trim(),
+                    extractedStudentId.trim(),
+                    LocalDateTime.now()
+                ));
+                log.info("도서관 전자출입증 인증 정보 임시 저장: email={}, name={}, studentId={}", 
+                    email, extractedName, extractedStudentId);
+            }
+
+            // 6. OCR 인식 성공
             log.info("도서관 전자출입증 OCR 인식 성공: name={}, studentId={}", extractedName, extractedStudentId);
 
             return LibraryCardAuthResult.success(
@@ -90,13 +131,31 @@ public class LibraryCardAuthService {
             return LibraryCardAuthResult.failure("OCR 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
+    
+    // 이메일로 저장된 도서관 인증 정보 조회 (회원가입 시 사용, 없거나 만료된 경우 null 반환)
+    public LibraryCardAuthInfo getLibraryCardAuthInfo(String email) {
+        LibraryCardAuthInfo authInfo = libraryCardAuthStorage.get(email);
+        if (authInfo == null) {
+            return null;
+        }
+        
+        // 만료 확인 (30분)
+        if (authInfo.isExpired(30)) {
+            libraryCardAuthStorage.remove(email);
+            log.warn("도서관 전자출입증 인증 정보 만료: email={}", email);
+            return null;
+        }
+        
+        return authInfo;
+    }
+    
+    // 이메일로 저장된 도서관 인증 정보 제거 (회원가입 완료 후)
+    public void removeLibraryCardAuthInfo(String email) {
+        libraryCardAuthStorage.remove(email);
+        log.info("도서관 전자출입증 인증 정보 제거: email={}", email);
+    }
 
-    /**
-     * 도서관 전자출입증 이미지를 업로드하고 인증 처리 (기존 메서드 - 하위 호환성 유지)
-     * @param userId 사용자 ID (이메일 또는 ID)
-     * @param imageFile 이미지 파일
-     * @return 인증 결과
-     */
+    // 도서관 전자출입증 이미지를 업로드하고 인증 처리 (기존 메서드 - 하위 호환성 유지)
     @Transactional
     public LibraryCardAuthResult authenticateLibraryCard(String userId, MultipartFile imageFile) {
         try {
@@ -239,14 +298,7 @@ public class LibraryCardAuthService {
         return name.trim().replaceAll("\\s+", "");
     }
 
-    /**
-     * 수동 인증 요청 제출 (사진, 이름, 학번을 받아서 승인 대기 상태로 저장)
-     * @param userId 사용자 ID (이메일 또는 ID)
-     * @param imageFile 이미지 파일
-     * @param name 사용자가 입력한 이름
-     * @param studentId 사용자가 입력한 학번
-     * @return 인증 요청 결과
-     */
+    // 수동 인증 요청 제출 (사진, 이름, 학번을 받아서 승인 대기 상태로 저장)
     @Transactional
     public LibraryCardAuthResult submitManualAuthRequest(String userId, MultipartFile imageFile, 
                                                          String name, String studentId) {
@@ -315,13 +367,7 @@ public class LibraryCardAuthService {
         return libraryCardAuthRepository.findById(authId);
     }
 
-    /**
-     * 인증 요청 승인/반려 처리
-     * @param authId 인증 요청 ID
-     * @param isApproved true: 승인, false: 반려
-     * @param rejectionReason 반려 사유 (반려 시 필수)
-     * @return 처리 결과
-     */
+    // 인증 요청 승인/반려 처리 (isApproved: true=승인, false=반려, rejectionReason: 반려 시 필수)
     @Transactional
     public LibraryCardAuthResult processApproval(Long authId, boolean isApproved, String rejectionReason) {
         try {

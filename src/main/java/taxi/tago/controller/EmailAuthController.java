@@ -2,14 +2,16 @@ package taxi.tago.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import taxi.tago.dto.Email.EmailAuthRequest;
 import taxi.tago.dto.Email.EmailAuthResponse;
+import taxi.tago.dto.Email.EmailSendRequest;
+import taxi.tago.dto.Password.PasswordSetRequest;
 import taxi.tago.service.EmailAuthService;
 import taxi.tago.service.LibraryCardAuthService;
-import taxi.tago.service.LibraryCardAuthService.LibraryCardAuthResult;
+import taxi.tago.service.LibraryCardAuthService.LibraryCardAuthInfo;
 import taxi.tago.service.User.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,7 +33,7 @@ public class EmailAuthController {
             summary = "인증 코드 전송",
             description = "회원가입을 위한 이메일 인증 코드를 전송합니다."
     )
-    public ResponseEntity<EmailAuthResponse> sendAuthCode(@RequestBody EmailAuthRequest request) {
+    public ResponseEntity<EmailAuthResponse> sendAuthCode(@RequestBody EmailSendRequest request) {
         try {
             emailAuthService.sendAuthCode(request.getEmail());
             return ResponseEntity.ok(new EmailAuthResponse(
@@ -128,7 +130,7 @@ public class EmailAuthController {
             summary = "인증 코드 재전송",
             description = "기존 인증 코드를 초기화하고 새로운 인증 코드를 재전송합니다."
     )
-    public ResponseEntity<EmailAuthResponse> resendAuthCode(@RequestBody EmailAuthRequest request) {
+    public ResponseEntity<EmailAuthResponse> resendAuthCode(@RequestBody EmailSendRequest request) {
         try {
             emailAuthService.resendAuthCode(request.getEmail());
             return ResponseEntity.ok(new EmailAuthResponse(
@@ -155,19 +157,15 @@ public class EmailAuthController {
     }
 
     // 비밀번호 설정 및 회원가입 (도서관 전자출입증 인증 필수)
-    @PostMapping(value = "/set-password", consumes = "multipart/form-data")
+    @PostMapping(value = "/set-password", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "비밀번호 설정 및 회원가입",
-            description = "이메일 인증이 완료된 사용자의 비밀번호를 설정하고 도서관 전자출입증 인증을 통해 회원가입을 완료합니다."
+            description = "이메일 인증과 도서관 전자출입증 인증이 완료된 사용자의 비밀번호를 설정하고 회원가입을 완료합니다. 이전에 도서관 인증에서 추출한 학번과 이름을 사용합니다."
     )
-    public ResponseEntity<EmailAuthResponse> setPassword(
-            @RequestParam("email") String email,
-            @RequestParam("password") String password,
-            @RequestParam("confirmPassword") String confirmPassword,
-            @RequestParam("libraryCardImage") MultipartFile libraryCardImage) {
+    public ResponseEntity<EmailAuthResponse> setPassword(@RequestBody PasswordSetRequest request) {
         try {
             // 입력값 검증
-            if (email == null || email.trim().isEmpty()) {
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "이메일을 입력해주세요.",
@@ -176,72 +174,66 @@ public class EmailAuthController {
                 ));
             }
 
-            if (password == null || password.trim().isEmpty()) {
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "비밀번호를 입력해주세요.",
-                        email,
+                        request.getEmail(),
                         null
                 ));
             }
 
-            if (confirmPassword == null || confirmPassword.trim().isEmpty()) {
+            if (request.getConfirmPassword() == null || request.getConfirmPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
                         "비밀번호 확인을 입력해주세요.",
-                        email,
+                        request.getEmail(),
                         null
                 ));
             }
 
-            if (libraryCardImage == null || libraryCardImage.isEmpty()) {
-                return ResponseEntity.badRequest().body(new EmailAuthResponse(
-                        false,
-                        "도서관 전자출입증 이미지를 등록해주세요.",
-                        email,
-                        null
-                ));
-            }
-
-            // 도서관 전자출입증 OCR 처리
-            LibraryCardAuthResult authResult = libraryCardAuthService.processLibraryCardImage(libraryCardImage);
+            // 이전에 완료한 도서관 전자출입증 인증 정보 조회
+            LibraryCardAuthInfo authInfo = libraryCardAuthService.getLibraryCardAuthInfo(request.getEmail());
             
-            if (!authResult.isSuccess()) {
+            if (authInfo == null) {
                 return ResponseEntity.badRequest().body(new EmailAuthResponse(
                         false,
-                        authResult.getMessage(),
-                        email,
+                        "도서관 전자출입증 인증이 완료되지 않았거나 만료되었습니다. 먼저 도서관 전자출입증을 등록해주세요.",
+                        request.getEmail(),
                         null
                 ));
             }
 
-            // 회원가입 처리 (학번과 이름 포함)
+            // 회원가입 처리 (이전에 저장된 학번과 이름 사용)
             userService.register(
-                    email, 
-                    password, 
-                    confirmPassword,
-                    authResult.getExtractedStudentId(),
-                    authResult.getExtractedName()
+                    request.getEmail(), 
+                    request.getPassword(), 
+                    request.getConfirmPassword(),
+                    authInfo.getStudentId(),
+                    authInfo.getName()
             );
+            
+            // 회원가입 완료 후 도서관 인증 정보 제거
+            libraryCardAuthService.removeLibraryCardAuthInfo(request.getEmail());
 
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
                     "회원가입이 완료되었습니다.",
-                    email,
+                    request.getEmail(),
                     null
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new EmailAuthResponse(
                     false,
                     e.getMessage(),
-                    email,
+                    request.getEmail(),
                     null
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EmailAuthResponse(
                     false,
                     "회원가입에 실패했습니다: " + e.getMessage(),
-                    email,
+                    request.getEmail(),
                     null
             ));
         }
