@@ -180,8 +180,12 @@ public class TaxiPartyService {
 
         try {
             notificationService.sendTaxiParticipationRequest(hostId, partyId, requesterName);
+            log.info("택시팟 참여 요청 알림 전송 성공: hostId={}, partyId={}, requesterName={}", 
+                    hostId, partyId, requesterName);
         } catch (Exception e) {
-            System.err.println("알림 전송 중 오류 발생 (같이타기 요청은 성공): " + e.getMessage());
+            log.error("알림 전송 중 오류 발생 (같이타기 요청은 성공): hostId={}, partyId={}, error={}", 
+                    hostId, partyId, e.getMessage(), e);
+            // 알림 실패해도 같이 타기 요청은 성공 처리
         }
 
         return "같이 타기 요청이 완료되었습니다.";

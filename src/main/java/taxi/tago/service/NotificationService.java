@@ -207,12 +207,18 @@ public class NotificationService {
         );
 
         Notification saved = notificationRepository.save(notification);
+        log.info("택시팟 참여 요청 알림 DB 저장 완료: notificationId={}, receiverId={}, taxiPartyId={}, requesterName={}", 
+                saved.getId(), receiverId, taxiPartyId, requesterName);
         
-        // SSE로 실시간 알림 전송
-        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
-        
-        log.info("택시팟 참여 요청 알림 생성: receiverId={}, taxiPartyId={}, requesterName={}", 
-                receiverId, taxiPartyId, requesterName);
+        // SSE로 실시간 알림 전송 (실패해도 알림은 이미 DB에 저장됨)
+        try {
+            sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+            log.debug("택시팟 참여 요청 알림 SSE 전송 성공: receiverId={}, notificationId={}", 
+                    receiverId, saved.getId());
+        } catch (Exception e) {
+            log.warn("택시팟 참여 요청 알림 SSE 전송 실패 (DB 저장은 완료): receiverId={}, notificationId={}, error={}", 
+                    receiverId, saved.getId(), e.getMessage());
+        }
     }
 
     /**
