@@ -102,7 +102,7 @@ public class UserController {
             description = "각 유저의 위치와 마지막으로 활동한 시간을 업데이트합니다."
     )
     public String userMapUpdate(
-            @RequestBody UserMapDto.UpdateRequest dto,
+            @RequestBody UserMapDto.MapUpdateRequest dto,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
