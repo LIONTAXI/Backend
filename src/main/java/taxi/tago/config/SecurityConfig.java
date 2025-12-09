@@ -40,7 +40,8 @@ public class SecurityConfig {
                         ).permitAll() // 로그인 및 인증 관련 엔드포인트, Swagger UI는 인증 불필요
                         .requestMatchers(
                                 "/api/chat/**",
-                                "/api/settlements"
+                                "/api/settlements",
+                                "/api/taxi-party/**"
                         ).authenticated() // 인증 필요
                         .anyRequest().permitAll() // 현재는 모든 요청 허용 (필요시 인증 필요로 변경 가능)
                 );
