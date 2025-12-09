@@ -241,6 +241,10 @@ public class UserService {
 
         // 4. 실제 파일 저장 (서버 하드디스크에 기록)
         File saveFile = new File(projectPath, fileName);
+        if (!saveFile.getParentFile().exists()) {
+            saveFile.getParentFile().mkdirs();
+        }
+
         file.transferTo(saveFile);
 
         // 5. DB에 저장할 URL 만들기 (웹 접속용 경로)
