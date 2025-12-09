@@ -1,6 +1,7 @@
 HELP.md
 SERVICE_ARCHITECTURE.md
 create_notifications_table.sql
+create_dummy_users.sql
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
