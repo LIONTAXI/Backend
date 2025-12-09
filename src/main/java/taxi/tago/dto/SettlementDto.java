@@ -17,6 +17,9 @@ public class SettlementDto {
     @Getter
     @NoArgsConstructor
     public static class CreateRequest {
+        // Settlement PK
+        private Long settlementId; // 정산 ID
+
         // 어떤 택시팟에 대한 정산인지
         private Long taxiPartyId;
 
