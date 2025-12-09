@@ -6,13 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.ReviewDto;
 import taxi.tago.security.CustomUserDetails;
 import taxi.tago.service.ReviewService;
+
+import java.util.List;
 
 // 택시팟 후기 관련 REST API 컨트롤러
 // POST   /api/reviews : 후기 작성
@@ -57,5 +56,55 @@ public class ReviewController {
 
         // HTTP 200 + 생성된 리뷰 ID 반환
         return ResponseEntity.ok(reviewId);
+    }
+
+    // 채팅방 -> "사용자 목록" 화면 데이터 조회 API
+    @GetMapping("/members")
+    @Operation(
+            summary = "채팅방 사용자 목록용 후기 상태 조회",
+            description = """
+                    채팅방 하단 메뉴 → '사용자 목록' 화면에서 사용할 데이터를 조회합니다.
+                    - 대상 택시팟 ID(taxiPartyId)를 쿼리 파라미터로 전달
+                    - 응답에는 각 멤버의 프로필 정보 + 총대 여부 + '이미 후기 작성함 여부'가 포함됩니다.
+                    """
+    )
+    public ResponseEntity<List<ReviewDto.MemberReviewStatus>> getMemberReviewStatusList(
+            @AuthenticationPrincipal
+            @Parameter(description = "현재 로그인한 사용자 정보 (JWT)", required = true)
+            CustomUserDetails userDetails,
+
+            @RequestParam("taxiPartyId")
+            @Parameter(description = "대상 택시팟 ID", required = true, example = "9")
+            Long taxiPartyId
+    ) {
+        Long currentUserId = userDetails.getUserId();
+
+        // 서비스에서 현재 유저가 이 팟의 멤버인지 검증 및 목록 구성
+        List<ReviewDto.MemberReviewStatus> result =
+                reviewService.getMemberReviewStatusList(taxiPartyId, currentUserId);
+
+        return ResponseEntity.ok(result);
+    }
+
+    // 프로필 요약 정보 조회 API
+    @GetMapping("/profile/{userId}")
+    @Operation(
+            summary = "사용자 프로필 후기 요약 조회",
+            description = """
+                    특정 사용자가 지금까지 받은 후기들을 기반으로,
+                    - 재매칭 희망률 (matchPreferenceRate)
+                    - 미정산 이력 개수 (unpaidCount)
+                    - 받은 매너 평가 태그별 카운트
+                    - 받은 비매너 평가 태그별 카운트
+                    를 조회합니다.
+                    """
+    )
+    public ResponseEntity<ReviewDto.ProfileSummaryResponse> getProfileSummary(
+            @PathVariable("userId")
+            @Parameter(description = "프로필 대상 사용자 ID", required = true, example = "4")
+            Long userId
+    ) {
+        ReviewDto.ProfileSummaryResponse response = reviewService.getProfileSummary(userId);
+        return ResponseEntity.ok(response);
     }
 }
