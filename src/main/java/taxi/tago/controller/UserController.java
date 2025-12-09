@@ -14,9 +14,9 @@ import taxi.tago.service.User.UserMapService;
 import taxi.tago.service.User.UserService;
 import taxi.tago.util.JwtUtil;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import taxi.tago.security.CustomUserDetails;
 import taxi.tago.dto.*;
-import taxi.tago.service.User.UserMapService;
-import taxi.tago.service.User.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -101,7 +101,12 @@ public class UserController {
             summary = "유저 위치 및 마지막 활동 시간 업데이트",
             description = "각 유저의 위치와 마지막으로 활동한 시간을 업데이트합니다."
     )
-    public String userMapUpdate(@RequestBody UserMapDto.UpdateRequest dto) {
+    public String userMapUpdate(
+            @RequestBody UserMapDto.UpdateRequest dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
+        dto.setUserId(userDetails.getUserId());
         userMapService.userMapUpdate(dto);
         return "유저 위치 및 활동시간 업데이트 성공";
     }
@@ -112,7 +117,11 @@ public class UserController {
             summary = "현재 접속 중인 유저 조회",
             description = "마지막 활동 시간이 3분 이내인 모든 유저를 조회하여 지도 위에 마커로 띄웁니다."
     )
-    public List<UserMapDto.Response> getActiveUsers(@RequestParam(name = "userId") Long userId) {
+    public List<UserMapDto.Response> getActiveUsers(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = (userDetails != null) ? userDetails.getUserId() : null;
+
         return userMapService.getActiveUsers(userId);
     }
 
@@ -331,21 +340,24 @@ public class UserController {
     // 마이페이지_프로필수정_기존정보조회
     @GetMapping("/api/users/info")
         @Operation(summary = "마이페이지_프로필수정", description = "유저의 현재 프로필 사진, 이름, 학번, 이메일을 반환합니다.")
-    public MypageDto.InfoResponse getUserInfo(@RequestParam(name = "userId") Long userId) {
-        return userService.getUserInfo(userId);
+    public MypageDto.InfoResponse getUserInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
+        return userService.getUserInfo(userDetails.getUserId());
     }
 
     // 마이페이지_프로필수정_프로필사진업로드
     @PutMapping(value = "/api/users/profile-image", consumes = "multipart/form-data")
     @Operation(summary = "프로필 사진 수정", description = "이미지 파일을 업로드하여 프로필 사진을 변경합니다.")
     public String updateProfileImage(
-            @RequestParam(name = "userId") Long userId,
-            @RequestPart(value = "file") MultipartFile file
+            @RequestPart(value = "file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
+        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
         try {
-            return userService.updateProfileImage(userId, file);
+            return userService.updateProfileImage(userDetails.getUserId(), file);
         } catch (IOException e) {
-            // 파일 저장 중 에러가 나면 500 에러 반환
             throw new RuntimeException("파일 저장 실패", e);
         }
     }

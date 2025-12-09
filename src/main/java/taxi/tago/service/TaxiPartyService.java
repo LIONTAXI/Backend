@@ -189,7 +189,14 @@ public class TaxiPartyService {
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 조회
     @Transactional(readOnly = true)
-    public List<TaxiUserDto.RequestResponse> getJoinRequests(Long partyId) {
+    public List<TaxiUserDto.RequestResponse> getJoinRequests(Long partyId, Long userId) { // userId 추가
+        TaxiParty party = taxiPartyRepository.findById(partyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다."));
+
+        if (!party.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("총대슈니만 참여 요청 목록을 조회할 수 있습니다.");
+        }
+
         // 요청 보낸 동승슈니 조회
         List<TaxiUser> requests = taxiUserRepository.findAllByTaxiPartyId(partyId);
 
@@ -208,15 +215,20 @@ public class TaxiPartyService {
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 참여 요청 수락
     @Transactional
-    public String acceptJoinRequest(Long taxiUserId) {
+    public String acceptJoinRequest(Long taxiUserId, Long userId) {
         TaxiUser taxiUser = taxiUserRepository.findById(taxiUserId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 요청입니다."));
+
+        TaxiParty party = taxiUser.getTaxiParty();
+
+        if (!party.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("총대슈니만 참여 요청을 수락할 수 있습니다.");
+        }
 
         // 해당 동승슈니의 같이 타기 요청 수락
         taxiUser.setStatus(ParticipationStatus.ACCEPTED);
 
         // 택시팟의 현재 인원 +1
-        TaxiParty party = taxiUser.getTaxiParty();
         party.setCurrentParticipants(party.getCurrentParticipants() + 1);
 
         // 수락된 동승슈니에게 알림 보내기

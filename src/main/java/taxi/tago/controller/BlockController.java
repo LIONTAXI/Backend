@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.BlockDto;
 import taxi.tago.service.BlockService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import taxi.tago.security.CustomUserDetails;
 
 import java.util.List;
 
@@ -19,21 +21,35 @@ public class BlockController {
     // 차단하기 API
     @PostMapping("/api/blocks")
     @Operation(summary = "사용자 차단하기", description = "특정 사용자를 차단합니다. 차단하면 서로의 게시글과 지도 마커가 보이지 않게 됩니다.")
-    public String blockUser(@RequestBody BlockDto.BlockRequest dto) {
+    public String blockUser(
+            @RequestBody BlockDto.BlockRequest dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
+        dto.setBlockerId(userDetails.getUserId());
         return blockService.blockUser(dto);
     }
 
     // 내가 차단한 목록
     @GetMapping("/api/blocks")
     @Operation(summary = "차단 목록 조회", description = "내가 차단한 사용자 목록을 조회합니다. 프로필 사진, 이름, 학번(2자리) 포함")
-    public List<BlockDto.Response> getBlockList(@RequestParam(name = "blockerId") Long blockerId) {
-        return blockService.getBlockList(blockerId);
+    public List<BlockDto.Response> getBlockList(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
+        return blockService.getBlockList(userDetails.getUserId());
     }
 
     // 차단 해제
     @DeleteMapping("/api/blocks")
     @Operation(summary = "차단 해제하기", description = "차단했던 사용자를 차단 해제합니다.")
-    public String unblockUser(@RequestBody BlockDto.BlockRequest dto) {
+    public String unblockUser(
+            @RequestBody BlockDto.BlockRequest dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
+        dto.setBlockerId(userDetails.getUserId());
+
         return blockService.unblockUser(dto);
     }
 }

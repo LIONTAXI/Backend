@@ -1,14 +1,12 @@
 package taxi.tago.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 public class UserMapDto {
 
     // 유저 위치 및 마지막 활동 시간 업데이트
     @Getter
+    @Setter
     @NoArgsConstructor
     public static class UpdateRequest {
         private Long userId;
