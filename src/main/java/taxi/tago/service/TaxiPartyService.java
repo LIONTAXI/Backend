@@ -1,21 +1,15 @@
 package taxi.tago.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.TaxiPartyStatus;
 import taxi.tago.constant.ParticipationStatus;
 import taxi.tago.dto.TaxiPartyDto;
 import taxi.tago.dto.TaxiUserDto;
-import taxi.tago.entity.Block;
-import taxi.tago.entity.TaxiParty;
-import taxi.tago.entity.TaxiUser;
-import taxi.tago.entity.User;
-import taxi.tago.repository.BlockRepository;
-import taxi.tago.repository.ChatRoomRepository;
-import taxi.tago.repository.TaxiPartyRepository;
-import taxi.tago.repository.TaxiUserRepository;
-import taxi.tago.repository.UserRepository;
+import taxi.tago.entity.*;
+import taxi.tago.repository.*;
 import taxi.tago.service.NotificationService;
 
 import java.time.LocalDate;
@@ -23,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaxiPartyService {
@@ -39,6 +34,7 @@ public class TaxiPartyService {
             "🐰", "🐹", "🍄", "⭐", "🐶", "🐱", "🦊", "🐻", "🐼", "🐨",
             "🐸", "♥️", "🦔", "🐢", "🐟", "🐬", "🐙", "🐥", "🦋", "🐌"
     );
+    private final ChatMessageRepository chatMessageRepository;
 
     @Transactional
     public Long createTaxiParty(TaxiPartyDto.CreateRequest dto) {
@@ -320,5 +316,40 @@ public class TaxiPartyService {
         party.setContent(dto.getContent());
 
         return "수정이 완료되었습니다. ID: " + partyId;
+    }
+
+    // 멤버 강퇴 메서드
+    @Transactional
+    public void kickMember(Long taxiPartyId, Long hostId, Long targetUserId) {
+        TaxiParty taxiParty = taxiPartyRepository.findById(taxiPartyId)
+                .orElseThrow(() -> new IllegalArgumentException("택시팟을 찾을 수 없습니다."));
+
+        // 총대인지 검증
+        if (!taxiParty.getUser().getId().equals(hostId)) {
+            throw new IllegalArgumentException("총대슈니만 동승슈니를 내보낼 수 있습니다.");
+        }
+
+        // 본인 강퇴 방지
+        TaxiUser taxiUser = taxiUserRepository
+                .findByTaxiPartyIdAndUserId(taxiPartyId, targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저는 이 택시팟의 멤버가 아닙니다."));
+
+        // 상태 변경
+        taxiUser.changeStatus(ParticipationStatus.KICKED);
+
+        // 시스템 메시지 채팅방에 전송
+        chatRoomRepository.findByTaxiPartyId(taxiPartyId)
+                .ifPresent(chatRoom -> {
+                    ChatMessage msg = ChatMessage.createTextMessage(
+                            chatRoom,
+                            taxiParty.getUser(), // 총대가 보낸 걸로 처리
+                            targetUserId + "님이 내보내졌습니다."
+                    );
+                    chatMessageRepository.save(msg);
+
+                    chatRoom.updateMessage(msg.getContent(), LocalDateTime.now());
+                });
+
+        log.info("멤버 강퇴 완료: partyId={}, hostId={}, targetUserId={}", taxiPartyId, hostId, targetUserId);
     }
 }
