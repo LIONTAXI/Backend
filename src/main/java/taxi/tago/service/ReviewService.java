@@ -27,7 +27,7 @@ public class ReviewService {
     private final UserRepository userRepository; // 유저 정보 조회용
     private final TaxiUserRepository taxiUserRepository; // 동승슈니 매핑 조회용
     private final ReviewRepository reviewRepository; // 후기를 실제로 저장/조회하는 레포지토리
-    private SettlementParticipantRepository settlementParticipantRepository; // 미정산 이력 개수를 계산하기 위해 사용
+    private final SettlementParticipantRepository settlementParticipantRepository; // 미정산 이력 개수를 계산하기 위해 사용
 
     // 후기 작성 메서드
     @Transactional
@@ -169,6 +169,17 @@ public class ReviewService {
         List<ReviewDto.TagCount> negativeTagCounts =
                 toTagCountList(reviewRepository.countNegativeTags(targetUserId));
 
+        // 최종 DTO 생성 및 반환
+        return new ReviewDto.ProfileSummaryResponse(
+                target.getId(),
+                target.getName(),
+                target.getShortStudentId(),
+                target.getImgUrl(),
+                matchPreferenceRate,
+                unpaidCount,
+                positiveTagCounts,
+                negativeTagCounts
+        );
     }
 
 
