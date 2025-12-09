@@ -1,5 +1,6 @@
 package taxi.tago.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,9 @@ public class BlockDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class BlockRequest {
+        @Schema(hidden = true)
         private Long blockerId; // 나 (차단하는 사람)
+        @Schema(description = "차단할 상대방의 유저 ID", example = "5")
         private Long blockedId; // 상대방 (차단당하는 사람)
     }
 
