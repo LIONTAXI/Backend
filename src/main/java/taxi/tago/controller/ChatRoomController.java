@@ -11,6 +11,7 @@ import taxi.tago.dto.chat.MyChatRoomListResponse;
 import taxi.tago.entity.ChatRoom;
 import taxi.tago.security.CustomUserDetails;
 import taxi.tago.service.ChatRoomService;
+import taxi.tago.service.TaxiPartyService;
 
 // 채팅방 관련 HTTP API를 담당하는 컨트롤러
 @RestController
@@ -20,6 +21,7 @@ import taxi.tago.service.ChatRoomService;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+    private final TaxiPartyService taxiPartyService;
 
     // 채팅방 입장 또는 생성 API
     @PostMapping("/enter")
@@ -87,5 +89,25 @@ public class ChatRoomController {
 
         // 별도의 DTO 필요없이 성공 메시지만 내려줌
         return ResponseEntity.ok("택시팟 채팅이 종료되었습니다.");
+    }
+
+    @PostMapping("/{taxiPartyId}/kick/{userId}")
+    @Operation(
+            summary = "동승슈니 강퇴하기 (총대 전용)",
+            description = """
+                총대슈니가 특정 동승슈니를 택시팟에서 강제로 내보냅니다.
+                - 총대만 호출 가능
+                - 강퇴된 멤버는 채팅도 불가
+                - 상태는 ParticipationStatus.KICKED 로 기록됩니다.
+                """
+    )
+    public ResponseEntity<Void> kickMember(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long taxiPartyId,
+            @PathVariable("userId") Long targetUserId
+    ) {
+        Long hostId = userDetails.getUserId();
+        taxiPartyService.kickMember(taxiPartyId, hostId, targetUserId);
+        return ResponseEntity.ok().build();
     }
 }
