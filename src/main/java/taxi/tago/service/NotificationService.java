@@ -183,6 +183,38 @@ public class NotificationService {
     }
 
     /**
+     * 택시팟 참여 요청 알림 생성
+     * 
+     * 동승슈니가 택시팟에 참여 요청을 보냈을 때 총대에게 알림을 보냅니다.
+     * 
+     * @param receiverId 알림을 받을 사용자 ID (총대슈니)
+     * @param taxiPartyId 택시팟 ID (클릭 시 이동할 택시팟 상세 페이지)
+     * @param requesterName 참여 요청을 보낸 사용자 이름
+     */
+    @Transactional
+    public void sendTaxiParticipationRequest(Long receiverId, Long taxiPartyId, String requesterName) {
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        Notification notification = new Notification(
+                receiver,
+                "택시팟 참여 요청이 왔어요.",
+                requesterName + "님이 같이 타기를 요청했어요.",
+                NotificationType.TAXI_PARTICIPATION_REQUEST,
+                "TAXI_PARTY",
+                taxiPartyId
+        );
+
+        Notification saved = notificationRepository.save(notification);
+        
+        // SSE로 실시간 알림 전송
+        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        
+        log.info("택시팟 참여 요청 알림 생성: receiverId={}, taxiPartyId={}, requesterName={}", 
+                receiverId, taxiPartyId, requesterName);
+    }
+
+    /**
      * 택시팟 참여 수락 알림 생성
      * 
      * 택시팟 참여 요청이 수락되었을 때 호출됩니다.
