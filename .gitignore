@@ -1,4 +1,5 @@
 HELP.md
+SERVICE_ARCHITECTURE.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -52,3 +53,5 @@ src/main/resources/static/images/*
 # 하지만, default.svg 파일만은 무시하지 않음(깃허브 push, pull에 포함)
 !src/main/resources/static/images/default.svg
 /src/main/resources/ws-test.html
+
+
