@@ -41,7 +41,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/chat/**",
                                 "/api/settlements/**",
-                                "/api/taxi-party/**"
+                                "/api/taxi-party/**",
+                                "/api/reviews/**"
                         ).authenticated() // 인증 필요
                         .anyRequest().permitAll() // 현재는 모든 요청 허용 (필요시 인증 필요로 변경 가능)
                 );
