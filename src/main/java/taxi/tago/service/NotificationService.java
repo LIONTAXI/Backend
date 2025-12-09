@@ -14,6 +14,7 @@ import taxi.tago.entity.User;
 import taxi.tago.repository.NotificationRepository;
 import taxi.tago.repository.UserRepository;
 import taxi.tago.util.SseEmitters;
+import org.springframework.transaction.annotation.Propagation;
 
 /**
  * 알림 서비스
@@ -191,7 +192,7 @@ public class NotificationService {
      * @param taxiPartyId 택시팟 ID (클릭 시 이동할 택시팟 상세 페이지)
      * @param requesterName 참여 요청을 보낸 사용자 이름
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendTaxiParticipationRequest(Long receiverId, Long taxiPartyId, String requesterName) {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
