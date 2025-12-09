@@ -90,4 +90,32 @@ public class ReviewDto {
         private Long count;
     }
 
+    // 단일 후기 상세 응답 DTO
+    @Getter
+    @AllArgsConstructor
+    public static class SingleReviewDetailResponse {
+        // 어떤 리뷰인지 식별용
+        private Long reviewId;
+
+        // 이 후기가 어떤 택시팟에서 작성된 것인지
+        private Long taxiPartyId;
+
+        // 리뷰 작성자(상대방) 기본 정보
+        private Long reviewerId;
+        private String reviewerName;
+        private String reviewerShortStudentId;
+        private String reviewerImgUrl;
+
+        // 리뷰 작성자의 전체 히스토리 기반 요약 정보
+        private Integer matchPreferenceRate;
+        private Integer unpaidCount;
+
+        // 이 리뷰 한 건에서 받은 긍정 / 부정 태그 목록
+        private List<String> positiveTags;
+        private List<String> negativeTags;
+
+        // 알림을 누른 유저(= reviewee)가 아직 상대방에게 후기를 쓰지 않았다면 true
+        // (true: "나도 후기 작성하러 가기" 버튼 노출 / false: 이미 썼으므로 "확인" 버튼 노출)
+        private boolean canWriteBack;
+    }
 }

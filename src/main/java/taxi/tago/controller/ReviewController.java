@@ -107,4 +107,33 @@ public class ReviewController {
         ReviewDto.ProfileSummaryResponse response = reviewService.getProfileSummary(userId);
         return ResponseEntity.ok(response);
     }
+
+    // 단일 후기 상세 조회 API
+    @GetMapping("/{reviewId}")
+    @Operation(
+            summary = "단일 후기 상세 조회 (알림용)",
+            description = """
+                    후기 도착 알림을 클릭했을 때, 해당 리뷰 한 건의 상세 정보를 조회합니다.
+                    - 현재 로그인한 유저는 반드시 이 리뷰의 '대상자(reviewee)'여야 합니다.
+                    - 상단에는 리뷰 작성자의 재매칭 희망률 / 미정산 이력이 함께 내려갑니다.
+                    - 본문에는 이 리뷰에서 받은 매너/비매너 태그 목록이 내려갑니다.
+                    - canWriteBack=true 이면 '나도 후기 작성하러 가기' 버튼을 노출하면 됩니다.
+                    """
+    )
+    public ResponseEntity<ReviewDto.SingleReviewDetailResponse> getSingleReviewDetail(
+            @AuthenticationPrincipal
+            @Parameter(description =  "현재 로그인한 사용자 정보 (JWT)", required = true)
+            CustomUserDetails userDetails,
+
+            @PathVariable("reviewId")
+            @Parameter(description = "조회할 후기 ID", required = true, example = "12")
+            Long reviewId
+    ) {
+        Long currentUserId = userDetails.getUserId();
+
+        ReviewDto.SingleReviewDetailResponse response =
+                reviewService.getSingleReviewDetail(reviewId, currentUserId);
+
+        return ResponseEntity.ok(response);
+    }
 }
