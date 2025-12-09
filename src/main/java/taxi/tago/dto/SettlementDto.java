@@ -67,4 +67,13 @@ public class SettlementDto {
         private LocalDateTime paidAt;
         private boolean host; // 총대인지 여부
     }
+
+    // 현재 유저가 속한 정산의 존재 여부 + settlementId만 내려주는 DTO
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class SettlementResponse {
+        private boolean hasSettlement; // 정산의 존재 여부
+        private Long settlementId; // 존재시 정산 ID, 없으면 null
+    }
 }

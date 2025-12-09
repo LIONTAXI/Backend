@@ -103,4 +103,28 @@ public class SettlementController {
         settlementService.remindUnpaid(settlementId, hostId);
         return ResponseEntity.ok().build(); // HTTP 200, body 없음
     }
+
+    // 이미 생성된 정산에 대해 "현재 로그인한 유저가 속해있는 settlementId"를 조회하는 API
+    @GetMapping("/current")
+    @Operation(
+            summary = "현재 유저 기준 정산 ID 조회",
+            description = """
+                    특정 택시팟에 대해 이미 생성된 정산이 있는지, 있다면 그 정산 ID를 반환합니다.
+                    - 쿼리 파라미터 taxiPartyId로 택시팟을 지정합니다.
+                    - 현재 로그인한 유저가 해당 정산의 총대 또는 참여자인 경우에만 settlementId를 내려줍니다.
+                    - 아직 정산이 생성되지 않은 경우 hasSettlement=false, settlementId=null 로 반환합니다.
+                    """
+    )
+    public ResponseEntity<SettlementDto.SettlementResponse> getMySettlementId(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("taxiPartyId") Long taxiPartyId
+    ) {
+        Long userId = userDetails.getUserId();
+
+        SettlementDto.SettlementResponse response =
+                settlementService.getMySettlementId(taxiPartyId, userId);
+
+        return ResponseEntity.ok(response);
+    }
+
 }
