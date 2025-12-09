@@ -3,6 +3,7 @@ package taxi.tago.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -11,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import taxi.tago.security.JwtAuthenticationFilter;
-import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -39,9 +39,13 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html"
                         ).permitAll() // 로그인 및 인증 관련 엔드포인트, Swagger UI는 인증 불필요
+                        .requestMatchers(HttpMethod.GET, "/api/taxi-party/*/requests").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/taxi-party/**").permitAll()
-                        .requestMatchers("/api/taxi-party/**").authenticated()
                         .requestMatchers(
+                                "/api/taxi-party/**",
+                                "/api/map/**",
+                                "/api/users/**",
+                                "/api/blocks/**",
                                 "/api/chat/**",
                                 "/api/settlements/**",
                                 "/api/reviews/**"
