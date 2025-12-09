@@ -2,6 +2,7 @@ package taxi.tago.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.ParticipationStatus;
@@ -13,6 +14,7 @@ import taxi.tago.entity.User;
 import taxi.tago.repository.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -179,6 +181,61 @@ public class ReviewService {
                 unpaidCount,
                 positiveTagCounts,
                 negativeTagCounts
+        );
+    }
+
+    // 후기 도착 알림에서 사용하는 단일 후기 상세 조회 메서드
+    @Transactional(readOnly = true)
+    public ReviewDto.SingleReviewDetailResponse getSingleReviewDetail(Long reviewId, Long currentUserId) {
+        // 리뷰 엔티티 조회
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "해당 후기를 찾을 수 없습니다. id = " + reviewId
+                ));
+
+        // 현재 로그인한 유저가 이 리뷰의 대상자(reviewee)인지 권한 검증
+        Long revieweeId = review.getReviewee().getId();
+        if (!revieweeId.equals(currentUserId)) {
+            // 아니라면 접근 권한 없으므로 예외 처리
+            throw new AccessDeniedException("해당 후기를 조회할 권한이 없습니다.");
+        }
+
+        // 리뷰 작성자(reviewer)의 전체 후기/정산 요약 정보 조회
+        User reviewer = review.getReviewer();
+        ReviewDto.ProfileSummaryResponse reviewerSummary = getProfileSummary(reviewer.getId());
+
+        // 이 리뷰 한 건에 포함된 positiveTags/negativeTags를 enum name 문자열 리스트로 변환
+        List<String> positiveTagNames = review.getPositiveTags().stream()
+                .sorted(Comparator.comparing(Enum::ordinal))
+                .map(Enum::name)
+                .toList();
+        List<String> negativeTagNames = review.getNegativeTags().stream()
+                .sorted(Comparator.comparing(Enum::ordinal))
+                .map(Enum::name)
+                .toList();
+
+        // 현재 유저(= reviewee)가 같은 택시팟에서 reviewer에게 이미 후기를 썼는지 검사
+        // 없으면 canWriteBack = true -> "나도 후기 작성하러 가기" 가능
+        boolean alreadyWrittenBack = reviewRepository.existsByTaxiPartyIdAndReviewerIdAndRevieweeId(
+                review.getTaxiParty().getId(),
+                currentUserId, // 내가 작성자
+                reviewer.getId() // 상대가 대상자
+        );
+        boolean canWriteBack = !alreadyWrittenBack;
+
+        // 최종 DTO 인스턴스 생성 및 반환
+        return new ReviewDto.SingleReviewDetailResponse(
+                review.getId(),
+                review.getTaxiParty().getId(),
+                reviewerSummary.getUserId(),
+                reviewerSummary.getName(),
+                reviewerSummary.getShortStudentId(),
+                reviewerSummary.getImgUrl(),
+                reviewerSummary.getMatchPreferenceRate(),
+                reviewerSummary.getUnpaidCount(),
+                positiveTagNames,
+                negativeTagNames,
+                canWriteBack
         );
     }
 
