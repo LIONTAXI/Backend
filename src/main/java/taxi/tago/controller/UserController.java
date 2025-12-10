@@ -3,6 +3,7 @@ package taxi.tago.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import taxi.tago.dto.Email.EmailAuthRequest;
@@ -373,43 +374,22 @@ public class UserController {
     }
 
     // 프로필 이미지 제공 API
-    @GetMapping("/api/users/{userId}/profile-image")
+    @GetMapping(value = "/api/users/{userId}/profile-image", produces = {MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_GIF_VALUE, "image/svg+xml"})
     @Operation(summary = "프로필 이미지 조회", description = "사용자의 프로필 이미지를 조회합니다.")
-    public ResponseEntity<org.springframework.core.io.Resource> getProfileImage(
+    public ResponseEntity<?> getProfileImage(
             @PathVariable Long userId
     ) {
         try {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-            // 기본 이미지인 경우 JAR 내부 정적 리소스에서 직접 제공
+            // 기본 이미지인 경우 정적 리소스 경로로 리다이렉트 (Spring Boot가 자동 제공)
             if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || 
                 user.getImgUrl().equals(DEFAULT_PROFILE_IMAGE) || 
                 user.getImgUrl().equals("/images/default.png")) {
-                org.springframework.core.io.Resource classPathResource = 
-                    new org.springframework.core.io.ClassPathResource("static/images/default.png");
-                if (!classPathResource.exists()) {
-                    classPathResource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
-                }
-                if (classPathResource.exists()) {
-                    try {
-                        // byte 배열로 읽어서 Content-Type 명시적으로 설정
-                        byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
-                        org.springframework.core.io.ByteArrayResource resource = 
-                            new org.springframework.core.io.ByteArrayResource(imageBytes);
-                        
-                        String contentType = classPathResource.getFilename() != null && classPathResource.getFilename().endsWith(".svg")
-                            ? "image/svg+xml" : "image/png";
-                        return ResponseEntity.ok()
-                                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
-                                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
-                                .body(resource);
-                    } catch (Exception ex) {
-                        log.error("기본 이미지 읽기 실패: {}", ex.getMessage());
-                    }
-                }
-                // 기본 이미지가 없으면 404 반환
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .header(org.springframework.http.HttpHeaders.LOCATION, DEFAULT_PROFILE_IMAGE)
+                        .build();
             }
 
             // 파일 경로에서 이미지 읽기
@@ -433,22 +413,10 @@ public class UserController {
                     .body(resource);
         } catch (Exception e) {
             log.error("프로필 이미지 조회 실패: userId={}, error={}", userId, e.getMessage());
-            // 오류 발생 시 기본 이미지 제공
-            try {
-                org.springframework.core.io.Resource classPathResource = 
-                    new org.springframework.core.io.ClassPathResource("static/images/default.png");
-                if (classPathResource.exists()) {
-                    byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
-                    org.springframework.core.io.ByteArrayResource resource = 
-                        new org.springframework.core.io.ByteArrayResource(imageBytes);
-                    return ResponseEntity.ok()
-                            .contentType(org.springframework.http.MediaType.IMAGE_PNG)
-                            .body(resource);
-                }
-            } catch (Exception ex) {
-                log.error("기본 이미지 제공 실패: {}", ex.getMessage());
-            }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            // 오류 발생 시 기본 이미지로 리다이렉트
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(org.springframework.http.HttpHeaders.LOCATION, DEFAULT_PROFILE_IMAGE)
+                    .build();
         }
     }
 }
