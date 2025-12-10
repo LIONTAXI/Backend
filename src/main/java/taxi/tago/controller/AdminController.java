@@ -62,14 +62,14 @@ public class AdminController {
                 ));
             }
 
-            // 로그인 처리
-            var user = adminService.login(request.getEmail(), request.getPassword());
+            // 로그인 처리 (환경변수 기반 인증)
+            var adminInfo = adminService.login(request.getEmail(), request.getPassword());
 
             return ResponseEntity.ok(new AdminLoginResponse(
                     true,
                     "로그인 성공",
-                    user.getEmail(),
-                    user.getRole()
+                    adminInfo.getEmail(),
+                    adminInfo.getRole()
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new AdminLoginResponse(
