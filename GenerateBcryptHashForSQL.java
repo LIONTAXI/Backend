@@ -24,8 +24,8 @@ public class GenerateBcryptHashForSQL {
         System.out.println("DELETE FROM users WHERE email LIKE 'test%@swu.ac.kr';");
         System.out.println();
         System.out.println("INSERT INTO users (email, password, role, img_url, last_active_at) VALUES");
-        for (int i = 1; i <= 5; i++) {
-            String comma = (i < 5) ? "," : ";";
+        for (int i = 1; i <= 10; i++) {
+            String comma = (i < 10) ? "," : ";";
             System.out.println("('test" + i + "@swu.ac.kr', '" + hash + "', 'USER', '/images/default.png', NOW())" + comma);
         }
         System.out.println();
