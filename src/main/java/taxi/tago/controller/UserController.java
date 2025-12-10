@@ -386,18 +386,30 @@ public class UserController {
             if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || 
                 user.getImgUrl().equals(DEFAULT_PROFILE_IMAGE) || 
                 user.getImgUrl().equals("/images/default.png")) {
-                org.springframework.core.io.Resource resource = 
+                org.springframework.core.io.Resource classPathResource = 
                     new org.springframework.core.io.ClassPathResource("static/images/default.png");
-                if (!resource.exists()) {
-                    resource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
+                if (!classPathResource.exists()) {
+                    classPathResource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
                 }
-                if (resource.exists()) {
-                    String contentType = resource.getFilename() != null && resource.getFilename().endsWith(".svg")
-                        ? "image/svg+xml" : "image/png";
-                    return ResponseEntity.ok()
-                            .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
-                            .body(resource);
+                if (classPathResource.exists()) {
+                    try {
+                        // byte 배열로 읽어서 Content-Type 명시적으로 설정
+                        byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
+                        org.springframework.core.io.ByteArrayResource resource = 
+                            new org.springframework.core.io.ByteArrayResource(imageBytes);
+                        
+                        String contentType = classPathResource.getFilename() != null && classPathResource.getFilename().endsWith(".svg")
+                            ? "image/svg+xml" : "image/png";
+                        return ResponseEntity.ok()
+                                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
+                                .body(resource);
+                    } catch (Exception ex) {
+                        log.error("기본 이미지 읽기 실패: {}", ex.getMessage());
+                    }
                 }
+                // 기본 이미지가 없으면 404 반환
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
             // 파일 경로에서 이미지 읽기
@@ -423,9 +435,12 @@ public class UserController {
             log.error("프로필 이미지 조회 실패: userId={}, error={}", userId, e.getMessage());
             // 오류 발생 시 기본 이미지 제공
             try {
-                org.springframework.core.io.Resource resource = 
+                org.springframework.core.io.Resource classPathResource = 
                     new org.springframework.core.io.ClassPathResource("static/images/default.png");
-                if (resource.exists()) {
+                if (classPathResource.exists()) {
+                    byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
+                    org.springframework.core.io.ByteArrayResource resource = 
+                        new org.springframework.core.io.ByteArrayResource(imageBytes);
                     return ResponseEntity.ok()
                             .contentType(org.springframework.http.MediaType.IMAGE_PNG)
                             .body(resource);
