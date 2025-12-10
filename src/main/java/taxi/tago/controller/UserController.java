@@ -403,13 +403,13 @@ public class UserController {
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
             String imgUrl = user.getImgUrl();
-            log.debug("프로필 이미지 조회: userId={}, imgUrl={}", userId, imgUrl);
+            log.info("프로필 이미지 조회: userId={}, imgUrl={}", userId, imgUrl);
 
             // 기본 이미지인 경우 정적 리소스에서 읽기
             if (imgUrl == null || imgUrl.isEmpty() || 
                 imgUrl.equals(DEFAULT_PROFILE_IMAGE) || 
                 imgUrl.equals("/images/default.png")) {
-                log.debug("기본 이미지 조회 시도: userId={}", userId);
+                log.info("기본 이미지 조회 시도: userId={}", userId);
                 
                 org.springframework.core.io.Resource classPathResource = 
                     new org.springframework.core.io.ClassPathResource("static/images/default.png");
@@ -443,7 +443,7 @@ public class UserController {
 
             // 업로드된 이미지인 경우 FileStorageService로 읽기 
             try {
-                log.debug("업로드된 이미지 조회 시도: userId={}, imgUrl={}", userId, imgUrl);
+                log.info("업로드된 이미지 조회 시도: userId={}, imgUrl={}", userId, imgUrl);
                 byte[] imageBytes = fileStorageService.loadImageFile(imgUrl);
                 org.springframework.core.io.ByteArrayResource resource = new org.springframework.core.io.ByteArrayResource(imageBytes);
 
@@ -458,7 +458,7 @@ public class UserController {
                     contentType = "image/svg+xml";
                 }
 
-                log.debug("업로드된 이미지 조회 성공: userId={}, contentType={}", userId, contentType);
+                log.info("업로드된 이미지 조회 성공: userId={}, contentType={}, 크기={} bytes", userId, contentType, imageBytes.length);
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(contentType))
                         .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
@@ -466,9 +466,11 @@ public class UserController {
             } catch (IOException e) {
                 log.error("업로드된 이미지 읽기 실패: userId={}, imgUrl={}, error={}", userId, imgUrl, e.getMessage(), e);
                 // 업로드된 이미지를 읽을 수 없으면 기본 이미지로 폴백
+                log.info("기본 이미지로 폴백 시도: userId={}", userId);
                 org.springframework.core.io.Resource classPathResource = 
                     new org.springframework.core.io.ClassPathResource("static/images/default.png");
                 if (!classPathResource.exists()) {
+                    log.info("default.png를 찾을 수 없어 default.svg 시도: userId={}", userId);
                     classPathResource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
                 }
                 if (classPathResource.exists()) {
@@ -484,11 +486,13 @@ public class UserController {
                                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
                                 .body(resource);
                     } catch (IOException fallbackException) {
-                        log.error("기본 이미지 폴백도 실패: userId={}, error={}", userId, fallbackException.getMessage());
+                        log.error("기본 이미지 폴백도 실패: userId={}, error={}", userId, fallbackException.getMessage(), fallbackException);
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
                     }
+                } else {
+                    log.error("기본 이미지 파일을 찾을 수 없음: userId={}", userId);
+                    return ResponseEntity.notFound().build();
                 }
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
         } catch (IllegalArgumentException e) {
             log.error("사용자를 찾을 수 없음: userId={}, error={}", userId, e.getMessage());
