@@ -40,6 +40,8 @@ public class UserService {
         }
 
         // 2. 이미 가입된 이메일인지 확인
+        // 주의: 환경변수로 관리되는 관리자 계정은 체크하지 않음 (관리자 계정과 일반 사용자 계정은 같은 이메일로 공존 가능)
+        // DB에 저장된 일반 사용자 계정만 체크
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
