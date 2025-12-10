@@ -194,15 +194,9 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다. id=" + userId));
 
-        // imgUrl이 파일 경로인 경우 API URL로 변환
-        String imgUrl = user.getImgUrl();
-        if (imgUrl != null && !imgUrl.startsWith("/api/") && !imgUrl.startsWith("/images/")) {
-            // 파일 경로인 경우 API 엔드포인트 URL로 변환
-            imgUrl = "/api/users/" + userId + "/profile-image";
-        } else if (imgUrl == null || imgUrl.isEmpty()) {
-            // 기본 이미지
-            imgUrl = DEFAULT_PROFILE_IMAGE;
-        }
+        // 항상 API 엔드포인트를 반환 (기본 이미지든 업로드된 이미지든 모두 API를 통해 제공)
+        // getProfileImage API에서 imgUrl을 확인하여 적절한 이미지를 반환함
+        String imgUrl = "/api/users/" + userId + "/profile-image";
 
         return new MypageDto.InfoResponse(
                 imgUrl,
