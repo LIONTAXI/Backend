@@ -20,16 +20,27 @@ public class LibraryCardAuthController {
 
     private final LibraryCardAuthService libraryCardAuthService;
 
-    // 도서관 전자출입증 이미지 업로드 및 OCR 인식 (회원가입 전용, 이메일 인증 완료 상태 확인 후 연결)
+    // 도서관 전자출입증 이미지 업로드 및 OCR 인식 (회원가입 플로우: 비밀번호 설정 완료 후)
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     @Operation(
             summary = "도서관 전자출입증 이미지 업로드 및 OCR 인식",
-            description = "도서관 전자출입증 이미지를 업로드하고 OCR을 통해 이름과 학번을 자동으로 추출합니다. 회원가입 플로우에서 이메일 인증 완료 후 사용하며, 이메일 인증 완료 상태를 확인하여 인증 정보를 연결합니다."
+            description = "도서관 전자출입증 이미지를 업로드하고 OCR을 통해 이름과 학번을 자동으로 추출합니다. 회원가입 플로우에서 비밀번호 설정 완료 후 사용하며, 이메일로 사용자를 찾아 학번과 이름을 업데이트합니다."
     )
     public ResponseEntity<LibraryCardAuthResponse> uploadLibraryCard(
+            @RequestParam(name = "email", required = true) String email,
             @RequestParam(name = "image", required = true) MultipartFile imageFile) {
         
         try {
+            // 이메일 입력 검증
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new LibraryCardAuthResponse(
+                    false,
+                    "이메일을 입력해주세요.",
+                    null,
+                    null
+                ));
+            }
+
             // 이미지 파일 검증
             if (imageFile == null || imageFile.isEmpty()) {
                 return ResponseEntity.badRequest().body(new LibraryCardAuthResponse(
@@ -54,8 +65,8 @@ public class LibraryCardAuthController {
                 ));
             }
 
-            // OCR 처리 (이메일 인증 완료 상태 확인 후 연결하여 임시 저장)
-            LibraryCardAuthResult result = libraryCardAuthService.processLibraryCardImage(imageFile);
+            // OCR 처리 및 사용자 정보 업데이트
+            LibraryCardAuthResult result = libraryCardAuthService.processLibraryCardImageForRegistration(email, imageFile);
 
             LibraryCardAuthResponse response = new LibraryCardAuthResponse(
                 result.isSuccess(),
