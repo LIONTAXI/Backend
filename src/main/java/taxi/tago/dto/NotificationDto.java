@@ -1,5 +1,6 @@
 package taxi.tago.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import taxi.tago.entity.Notification;
@@ -33,6 +34,7 @@ public class NotificationDto {
     private boolean read;
 
     // 생성 시각 (프론트에서 "11:44" 또는 "10/31" 형식으로 표시)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
     // Notification 엔티티를 NotificationDto로 변환

@@ -1,6 +1,7 @@
 package taxi.tago.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 
+@Slf4j
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
@@ -66,7 +68,9 @@ public class NotificationController {
             emitter.send(SseEmitter.event()
                     .name("connect")
                     .data("SSE 연결이 성공적으로 설정되었습니다."));
+            log.info("SSE 초기 연결 이벤트 전송 성공: userId={}", userId);
         } catch (Exception e) {
+            log.error("SSE 초기 연결 이벤트 전송 실패: userId={}, error={}", userId, e.getMessage(), e);
             emitter.completeWithError(e);
         }
         
