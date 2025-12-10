@@ -129,7 +129,8 @@ public class TaxiPartyService {
                 party.getExpectedPrice(),
                 party.getContent(),
                 party.getStatus().toString(),
-                myStatus
+                myStatus,
+                party.getMarkerEmoji().toString()
         );
     }
 
