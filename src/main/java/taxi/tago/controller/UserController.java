@@ -373,26 +373,41 @@ public class UserController {
         }
     }
 
-    // 프로필 이미지 제공 API
+    // 프로필 이미지 제공 API 
     @GetMapping(value = "/api/users/{userId}/profile-image", produces = {MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_GIF_VALUE, "image/svg+xml"})
     @Operation(summary = "프로필 이미지 조회", description = "사용자의 프로필 이미지를 조회합니다.")
-    public ResponseEntity<?> getProfileImage(
+    public ResponseEntity<org.springframework.core.io.Resource> getProfileImage(
             @PathVariable Long userId
     ) {
         try {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-            // 기본 이미지인 경우 정적 리소스 경로로 리다이렉트 (Spring Boot가 자동 제공)
+            // 기본 이미지인 경우 정적 리소스에서 읽기
             if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || 
                 user.getImgUrl().equals(DEFAULT_PROFILE_IMAGE) || 
                 user.getImgUrl().equals("/images/default.png")) {
-                return ResponseEntity.status(HttpStatus.FOUND)
-                        .header(org.springframework.http.HttpHeaders.LOCATION, DEFAULT_PROFILE_IMAGE)
-                        .build();
+                org.springframework.core.io.Resource classPathResource = 
+                    new org.springframework.core.io.ClassPathResource("static/images/default.png");
+                if (!classPathResource.exists()) {
+                    classPathResource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
+                }
+                if (classPathResource.exists()) {
+                    byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
+                    org.springframework.core.io.ByteArrayResource resource = 
+                        new org.springframework.core.io.ByteArrayResource(imageBytes);
+                    
+                    String contentType = classPathResource.getFilename() != null && classPathResource.getFilename().endsWith(".svg")
+                        ? "image/svg+xml" : "image/png";
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType(contentType))
+                            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
+                            .body(resource);
+                }
+                return ResponseEntity.notFound().build();
             }
 
-            // 파일 경로에서 이미지 읽기
+            // 업로드된 이미지인 경우 FileStorageService로 읽기 
             byte[] imageBytes = fileStorageService.loadImageFile(user.getImgUrl());
             org.springframework.core.io.ByteArrayResource resource = new org.springframework.core.io.ByteArrayResource(imageBytes);
 
@@ -408,15 +423,12 @@ public class UserController {
             }
 
             return ResponseEntity.ok()
-                    .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                    .contentType(MediaType.parseMediaType(contentType))
                     .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
                     .body(resource);
         } catch (Exception e) {
             log.error("프로필 이미지 조회 실패: userId={}, error={}", userId, e.getMessage());
-            // 오류 발생 시 기본 이미지로 리다이렉트
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(org.springframework.http.HttpHeaders.LOCATION, DEFAULT_PROFILE_IMAGE)
-                    .build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }
