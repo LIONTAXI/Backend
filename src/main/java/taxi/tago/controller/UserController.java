@@ -12,6 +12,9 @@ import taxi.tago.dto.Password.PasswordResetRequest;
 import taxi.tago.dto.UserMapDto;
 import taxi.tago.service.User.UserMapService;
 import taxi.tago.service.User.UserService;
+import taxi.tago.service.FileStorageService;
+import taxi.tago.repository.UserRepository;
+import taxi.tago.entity.User;
 import taxi.tago.util.JwtUtil;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,6 +35,8 @@ public class UserController {
 
     private final UserMapService userMapService;
     private final UserService userService;
+    private final FileStorageService fileStorageService;
+    private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
 
     // 사용자 로그인
@@ -359,6 +364,52 @@ public class UserController {
             return userService.updateProfileImage(userDetails.getUserId(), file);
         } catch (IOException e) {
             throw new RuntimeException("파일 저장 실패", e);
+        }
+    }
+
+    // 프로필 이미지 제공 API
+    @GetMapping("/api/users/{userId}/profile-image")
+    @Operation(summary = "프로필 이미지 조회", description = "사용자의 프로필 이미지를 조회합니다.")
+    public ResponseEntity<org.springframework.core.io.Resource> getProfileImage(
+            @PathVariable Long userId
+    ) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+            // imgUrl이 없거나 기본 이미지인 경우
+            if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || user.getImgUrl().equals("/images/default.svg")) {
+                // 기본 이미지 반환 (static 리소스)
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
+                if (resource.exists()) {
+                    return ResponseEntity.ok()
+                            .contentType(org.springframework.http.MediaType.parseMediaType("image/svg+xml"))
+                            .body(resource);
+                }
+                return ResponseEntity.notFound().build();
+            }
+
+            // 파일 경로에서 이미지 읽기
+            byte[] imageBytes = fileStorageService.loadImageFile(user.getImgUrl());
+            org.springframework.core.io.ByteArrayResource resource = new org.springframework.core.io.ByteArrayResource(imageBytes);
+
+            // 이미지 타입 결정
+            String contentType = "image/jpeg";
+            String imagePath = user.getImgUrl().toLowerCase();
+            if (imagePath.endsWith(".png")) {
+                contentType = "image/png";
+            } else if (imagePath.endsWith(".gif")) {
+                contentType = "image/gif";
+            } else if (imagePath.endsWith(".svg")) {
+                contentType = "image/svg+xml";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }
