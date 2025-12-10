@@ -71,6 +71,7 @@ public class TaxiPartyDto {
         private String content;              // 추가 설명
         private String status;               // 매칭 상태
         private String participationStatus;  // 나의 참여상태(NONE, WAITING, ACCEPTED)
+        private String markerEmoji;          // 마커 이모지
     }
 
     @Getter
