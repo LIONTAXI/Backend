@@ -60,7 +60,7 @@ public class Notification {
     private Long targetId;
 
     // 읽음 여부 (false: 안 읽은 알림, true: 읽은 알림)
-    @Column(nullable = false)
+    @Column(name = "`read`", nullable = false)
     private boolean read = false;
 
     // 생성 시각
