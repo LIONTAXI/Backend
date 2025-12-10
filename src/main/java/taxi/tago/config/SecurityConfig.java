@@ -37,7 +37,8 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/images/**" // 정적 리소스 (기본 이미지 등)
                         ).permitAll() // 로그인 및 인증 관련 엔드포인트, Swagger UI는 인증 불필요
                         .requestMatchers(HttpMethod.GET, "/api/map").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/taxi-party/*/requests").authenticated()

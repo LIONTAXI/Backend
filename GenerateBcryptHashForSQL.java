@@ -26,7 +26,7 @@ public class GenerateBcryptHashForSQL {
         System.out.println("INSERT INTO users (email, password, role, img_url, last_active_at) VALUES");
         for (int i = 1; i <= 5; i++) {
             String comma = (i < 5) ? "," : ";";
-            System.out.println("('test" + i + "@swu.ac.kr', '" + hash + "', 'USER', '/images/default.svg', NOW())" + comma);
+            System.out.println("('test" + i + "@swu.ac.kr', '" + hash + "', 'USER', '/images/default.png', NOW())" + comma);
         }
         System.out.println();
         System.out.println("-- 로그인 정보:");

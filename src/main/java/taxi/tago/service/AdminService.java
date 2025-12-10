@@ -18,12 +18,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * 관리자 로그인 처리
-     * @param email 관리자 이메일
-     * @param password 비밀번호
-     * @return 로그인 성공 시 User 객체, 실패 시 null
-     */
+    // 관리자 로그인 처리
     public User login(String email, String password) {
         // 1. 이메일로 사용자 조회
         User user = userRepository.findByEmail(email)

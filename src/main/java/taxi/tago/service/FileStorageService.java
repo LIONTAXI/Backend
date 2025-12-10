@@ -19,12 +19,7 @@ public class FileStorageService {
     @Value("${image.upload.path:uploads/library-cards}")
     private String uploadPath;
 
-    /**
-     * 이미지 파일을 저장하고 저장된 파일 경로를 반환
-     * @param file 업로드된 파일
-     * @return 저장된 파일의 경로 (절대 경로 또는 상대 경로)
-     * @throws IOException 파일 저장 실패 시
-     */
+    // 이미지 파일을 저장하고 저장된 파일 경로를 반환
     public String saveImageFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("파일이 비어있습니다.");
@@ -54,13 +49,7 @@ public class FileStorageService {
         return filePath.toAbsolutePath().toString();
     }
 
-    /**
-     * 파일 경로로부터 파일을 읽어서 byte 배열로 반환
-     * 상대 경로, 절대 경로 모두 지원
-     * @param filePath 파일 경로 (상대 경로 또는 절대 경로)
-     * @return 파일의 byte 배열
-     * @throws IOException 파일 읽기 실패 시
-     */
+    // 파일 경로로부터 파일을 읽어서 byte 배열로 반환 (상대 경로, 절대 경로 모두 지원)
     public byte[] loadImageFile(String filePath) throws IOException {
         if (filePath == null || filePath.trim().isEmpty()) {
             throw new IOException("파일 경로가 비어있습니다.");
