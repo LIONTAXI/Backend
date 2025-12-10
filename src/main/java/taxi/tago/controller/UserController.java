@@ -33,7 +33,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "유저 마커 API", description = "유저 위치 및 마지막 활동 시간 업데이트, 현재 접속 중인 유저 조회 (마지막 활동 시간이 3분 이내) 기능을 제공합니다.")
+@Tag(name = "사용자 API", description = "일반 사용자 로그인, 유저 위치 및 마지막 활동 시간 업데이트, 현재 접속 중인 유저 조회, 비밀번호 변경, 프로필 관리 기능을 제공합니다.")
 public class UserController {
 
     // 기본 프로필 이미지 경로
@@ -49,7 +49,8 @@ public class UserController {
     @PostMapping("/api/login")
     @Operation(
             summary = "사용자 로그인",
-            description = "이메일과 비밀번호로 로그인하고 JWT 토큰을 발급받습니다."
+            description = "일반 사용자(USER) 계정으로 로그인합니다. 이메일과 비밀번호로 로그인하고 JWT 토큰을 발급받습니다. " +
+                    "관리자 계정은 /api/admin/login 엔드포인트를 사용하세요."
     )
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         try {

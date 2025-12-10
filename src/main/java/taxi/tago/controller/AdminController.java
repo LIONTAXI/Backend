@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@Tag(name = "관리자 API", description = "관리자 로그인 및 도서관 전자출입증 인증 요청 승인/반려 기능을 제공합니다.")
+@Tag(name = "관리자 API", description = "관리자(ADMIN) 전용 API입니다. 관리자 로그인 및 도서관 전자출입증 인증 요청 승인/반려 기능을 제공합니다. " +
+        "관리자 계정은 환경변수로 관리되며 DB에 저장되지 않습니다. 일반 사용자 로그인은 /api/login 엔드포인트를 사용하세요.")
 public class AdminController {
 
     private final AdminService adminService;
@@ -39,7 +40,9 @@ public class AdminController {
     @PostMapping("/login")
     @Operation(
             summary = "관리자 로그인",
-            description = "관리자 이메일과 비밀번호로 로그인합니다."
+            description = "관리자(ADMIN) 계정으로 로그인합니다. 환경변수(admin.email, admin.password)에 설정된 관리자 계정 정보로 인증합니다. " +
+                    "관리자 계정은 DB에 저장되지 않으며, 환경변수로만 관리됩니다. " +
+                    "일반 사용자 로그인은 /api/login 엔드포인트를 사용하세요."
     )
     public ResponseEntity<AdminLoginResponse> login(@RequestBody AdminLoginRequest request) {
         try {
