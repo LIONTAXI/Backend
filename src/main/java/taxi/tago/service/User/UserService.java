@@ -9,14 +9,13 @@ import taxi.tago.dto.MypageDto;
 import taxi.tago.entity.User;
 import taxi.tago.repository.UserRepository;
 import taxi.tago.service.EmailAuthService;
+import taxi.tago.service.FileStorageService;
 import taxi.tago.util.PasswordValidator;
 
 import org.springframework.web.multipart.MultipartFile;
-import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.UUID;
 import java.util.List;
 
 @Slf4j
@@ -27,6 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final EmailAuthService emailAuthService;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
     /**
      * 회원가입 처리
@@ -228,8 +228,18 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다. id=" + userId));
 
+        // imgUrl이 파일 경로인 경우 API URL로 변환
+        String imgUrl = user.getImgUrl();
+        if (imgUrl != null && !imgUrl.startsWith("/api/") && !imgUrl.startsWith("/images/")) {
+            // 파일 경로인 경우 API 엔드포인트 URL로 변환
+            imgUrl = "/api/users/" + userId + "/profile-image";
+        } else if (imgUrl == null || imgUrl.isEmpty()) {
+            // 기본 이미지
+            imgUrl = "/images/default.svg";
+        }
+
         return new MypageDto.InfoResponse(
-                user.getImgUrl(),
+                imgUrl,
                 user.getName(),
                 user.getShortStudentId(),
                 user.getEmail()
@@ -247,7 +257,7 @@ public class UserService {
             throw new IllegalArgumentException("업로드할 이미지가 없습니다.");
         }
 
-        // 2. 파일명 가져오기 및 확장자 유무 확인 (안전장치 추가)
+        // 2. 파일명 가져오기 및 확장자 유무 확인
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !originalFilename.contains(".")) {
             throw new IllegalArgumentException("파일 형식이 올바르지 않습니다.");
@@ -261,32 +271,16 @@ public class UserService {
             throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif만 가능)");
         }
 
-        // 4. 파일 이름 중복 방지를 위한 UUID 생성 (검사 통과 후에 만듦)
-        String uuid = UUID.randomUUID().toString();
-        String fileName = uuid + "_" + originalFilename;
+        // 4. FileStorageService를 사용하여 파일 저장 (프로덕션 환경에서도 동작)
+        String savedFilePath = fileStorageService.saveImageFile(file);
 
-        // 5. 파일 저장 경로 설정
-        String projectPath = System.getProperty("user.dir")
-                + File.separator + "src"
-                + File.separator + "main"
-                + File.separator + "resources"
-                + File.separator + "static"
-                + File.separator + "images";
+        // 5. DB에 저장할 경로 (API 엔드포인트로 접근 가능하도록)
+        String dbImgUrl = "/api/users/" + userId + "/profile-image";
 
-        // 6. 실제 파일 저장 (폴더가 없으면 자동 생성)
-        File saveFile = new File(projectPath, fileName);
-        if (!saveFile.getParentFile().exists()) {
-            saveFile.getParentFile().mkdirs();
-        }
+        // 6. 엔티티 업데이트 (파일 경로를 imgUrl에 저장)
+        // imgUrl에 실제 파일 경로를 저장하여 나중에 API에서 읽을 수 있도록 함
+        user.setImgUrl(savedFilePath);
 
-        file.transferTo(saveFile);
-
-        // 7. DB에 저장할 URL 만들기
-        String dbImgUrl = "/images/" + fileName;
-
-        // 8. 엔티티 업데이트 (Dirty Checking)
-        user.setImgUrl(dbImgUrl);
-
-        return "프로필 사진 수정 완료, 경로: " + dbImgUrl;
+        return "프로필 사진 수정 완료, URL: " + dbImgUrl;
     }
 }
