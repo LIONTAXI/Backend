@@ -50,18 +50,25 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             if (token != null && jwtUtil.validateToken(token)) {
                 String email = jwtUtil.getEmailFromToken(token);
 
-                // 기존 SecurityConfig에서 사용하던 UserDetailsService 재사용
-                CustomUserDetails userDetails =
-                        (CustomUserDetails) userDetailsService.loadUserByUsername(email);
+                // 사용자가 DB에 존재하는지 확인 (삭제된 사용자는 인증 실패)
+                try {
+                    // 기존 SecurityConfig에서 사용하던 UserDetailsService 재사용
+                    CustomUserDetails userDetails =
+                            (CustomUserDetails) userDetailsService.loadUserByUsername(email);
 
-                // WebSocket 세션에 Principal 형태로 저장
-                Principal principal = userDetails::getUsername;
-                attributes.put("principal", principal);
-                attributes.put("userDetails", userDetails);
+                    // WebSocket 세션에 Principal 형태로 저장
+                    Principal principal = userDetails::getUsername;
+                    attributes.put("principal", principal);
+                    attributes.put("userDetails", userDetails);
 
-                log.info("WebSocket Handshake 인증 성공: {}", email);
-                // true를 리턴해야 handshake 계속 진행
-                return true; // 정상 인증이면 통과
+                    log.info("WebSocket Handshake 인증 성공: {}", email);
+                    // true를 리턴해야 handshake 계속 진행
+                    return true; // 정상 인증이면 통과
+                } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+                    // 사용자가 DB에서 삭제된 경우 인증 실패
+                    log.warn("WebSocket Handshake: JWT 토큰은 유효하지만 사용자가 DB에 존재하지 않음: {}", email);
+                    return false; // 인증 실패 시 연결 차단
+                }
             } else {
                 log.warn("WebSocket Handshake: JWT가 없거나 유효하지 않음");
                 return false; // 인증 실패 시 연결 차단

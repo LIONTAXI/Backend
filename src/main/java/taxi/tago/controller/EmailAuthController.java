@@ -63,7 +63,7 @@ public class EmailAuthController {
     @PostMapping("/verify")
     @Operation(
             summary = "인증 코드 검증",
-            description = "전송된 이메일 인증 코드를 검증합니다. 인증 성공 시 비밀번호 설정 화면으로 이동합니다."
+            description = "전송된 이메일 인증 코드를 검증합니다. 인증 성공 시 도서관 전자출입증 인증 화면으로 이동합니다."
     )
     public ResponseEntity<EmailAuthResponse> verifyAuthCode(@RequestBody EmailAuthRequest request) {
         try {
@@ -91,10 +91,10 @@ public class EmailAuthController {
             boolean isValid = emailAuthService.verifyAuthCode(request.getEmail(), request.getCode());
             
             if (isValid) {
-                // 인증 성공: 비밀번호 설정 화면으로 이동 (아이디는 이메일로 자동 사용)
+                // 인증 성공: 도서관 전자출입증 인증 화면으로 이동
                 return ResponseEntity.ok(new EmailAuthResponse(
                         true,
-                        "인증이 완료되었습니다. 비밀번호를 설정해주세요.",
+                        "인증이 완료되었습니다. 도서관 전자출입증을 등록해주세요.",
                         request.getEmail(),  // 아이디로 사용할 웹 메일 반환
                         null
                 ));
