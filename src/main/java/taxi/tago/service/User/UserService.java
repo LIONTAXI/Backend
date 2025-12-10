@@ -199,11 +199,9 @@ public class UserService {
         if (imgUrl != null && !imgUrl.startsWith("/api/") && !imgUrl.startsWith("/images/")) {
             // 파일 경로인 경우 API 엔드포인트 URL로 변환
             imgUrl = "/api/users/" + userId + "/profile-image";
-        } else if (imgUrl == null || imgUrl.isEmpty() || 
-                   imgUrl.equals(DEFAULT_PROFILE_IMAGE) || 
-                   imgUrl.equals("/images/default.png")) {
-            // 기본 이미지인 경우도 API 엔드포인트를 통해 제공 
-            imgUrl = "/api/users/" + userId + "/profile-image";
+        } else if (imgUrl == null || imgUrl.isEmpty()) {
+            // 기본 이미지
+            imgUrl = DEFAULT_PROFILE_IMAGE;
         }
 
         return new MypageDto.InfoResponse(
