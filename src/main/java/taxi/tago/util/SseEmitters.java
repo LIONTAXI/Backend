@@ -58,15 +58,21 @@ public class SseEmitters {
                 emitter.send(SseEmitter.event()
                         .name(eventName)
                         .data(data));
-                log.debug("SSE 알림 전송 성공: userId={}, eventName={}", userId, eventName);
+                log.info("SSE 알림 전송 성공: userId={}, eventName={}, 현재 연결 수={}", userId, eventName, emitters.size());
             } catch (IOException e) {
                 // 전송 실패 시 연결 제거
                 emitters.remove(userId);
                 emitter.completeWithError(e);
-                log.error("SSE 알림 전송 실패: userId={}, error={}", userId, e.getMessage());
+                log.error("SSE 알림 전송 실패: userId={}, error={}", userId, e.getMessage(), e);
+            } catch (Exception e) {
+                // 예상치 못한 오류
+                emitters.remove(userId);
+                emitter.completeWithError(e);
+                log.error("SSE 알림 전송 중 예상치 못한 오류: userId={}, error={}", userId, e.getMessage(), e);
             }
         } else {
-            log.debug("SSE 연결 없음 (알림 전송 스킵): userId={}", userId);
+            log.warn("SSE 연결 없음 (알림 전송 스킵): userId={}, 현재 연결 수={}, 연결된 사용자={}", 
+                    userId, emitters.size(), emitters.keySet());
         }
     }
 
