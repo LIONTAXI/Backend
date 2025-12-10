@@ -91,8 +91,9 @@ public class UserService {
 
     @Transactional
     public User login(String email, String password) {
-        // 1. 이메일로 사용자 조회
-        User user = userRepository.findByEmail(email)
+        // 1. 이메일로 USER role 사용자만 조회 (ADMIN role은 제외)
+        // 주의: 사용자 로그인 엔드포인트는 USER role만 허용, ADMIN role은 /api/admin/login 사용
+        User user = userRepository.findByEmailAndRole(email, UserRole.USER)
                 .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호를 다시 확인해주세요."));
 
         // 2. 비밀번호 확인
