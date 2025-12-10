@@ -28,11 +28,7 @@ public class JwtUtil {
         this.expirationTime = expirationTime;
     }
 
-    /**
-     * JWT 토큰 생성
-     * @param user 사용자 정보
-     * @return JWT 토큰 문자열
-     */
+    // JWT 토큰 생성
     public String generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
@@ -47,42 +43,26 @@ public class JwtUtil {
                 .compact();
     }
 
-    /**
-     * JWT 토큰에서 이메일 추출
-     * @param token JWT 토큰
-     * @return 이메일
-     */
+    // JWT 토큰에서 이메일 추출
     public String getEmailFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.getSubject();
     }
 
-    /**
-     * JWT 토큰에서 사용자 ID 추출
-     * @param token JWT 토큰
-     * @return 사용자 ID
-     */
+    // JWT 토큰에서 사용자 ID 추출
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.get("userId", Long.class);
     }
 
-    /**
-     * JWT 토큰에서 역할 추출
-     * @param token JWT 토큰
-     * @return 사용자 역할
-     */
+    // JWT 토큰에서 역할 추출
     public UserRole getRoleFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         String roleName = claims.get("role", String.class);
         return UserRole.valueOf(roleName);
     }
 
-    /**
-     * JWT 토큰에서 Claims 추출
-     * @param token JWT 토큰
-     * @return Claims
-     */
+    // JWT 토큰에서 Claims 추출
     private Claims getClaimsFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
@@ -91,11 +71,7 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    /**
-     * JWT 토큰 유효성 검증
-     * @param token JWT 토큰
-     * @return 유효 여부
-     */
+    // JWT 토큰 유효성 검증
     public boolean validateToken(String token) {
         try {
             Jwts.parser()

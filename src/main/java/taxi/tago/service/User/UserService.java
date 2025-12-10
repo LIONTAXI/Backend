@@ -23,22 +23,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserService {
 
+    // 기본 프로필 이미지 경로
+    private static final String DEFAULT_PROFILE_IMAGE = "/images/default.png";
+
     private final UserRepository userRepository;
     private final EmailAuthService emailAuthService;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
 
-    /**
-     * 회원가입 처리
-     *
-     * @param email           웹메일 (아이디)
-     * @param password        비밀번호
-     * @param confirmPassword 비밀번호 확인
-     * @param studentId       학번 (도서관 전자출입증 인증으로 추출된 학번)
-     * @param name            이름 (도서관 전자출입증 인증으로 추출된 이름)
-     * @return 생성된 User 객체
-     * @throws IllegalArgumentException 유효성 검증 실패 시
-     */
+    // 회원가입 처리
     @Transactional
     public User register(String email, String password, String confirmPassword, String studentId, String name) {
         // 1. 이메일 인증 완료 여부 확인
@@ -80,7 +73,7 @@ public class UserService {
         user.setStudentId(studentId.trim());
         user.setName(name.trim());
         user.setLastActiveAt(LocalDateTime.now());
-        user.setImgUrl("/images/default.svg");
+        user.setImgUrl(DEFAULT_PROFILE_IMAGE);
 
         // 7. 사용자 저장 (PrePersist에서 shortStudentId 자동 추출됨)
         User savedUser = userRepository.save(user);
@@ -92,14 +85,7 @@ public class UserService {
         return savedUser;
     }
 
-    /**
-     * 사용자 로그인 처리
-     *
-     * @param email    웹메일 (아이디)
-     * @param password 비밀번호
-     * @return 로그인 성공 시 User 객체
-     * @throws IllegalArgumentException 로그인 실패 시
-     */
+
     @Transactional
     public User login(String email, String password) {
         // 1. 이메일로 사용자 조회
@@ -119,12 +105,7 @@ public class UserService {
         return user;
     }
 
-    /**
-     * 비밀번호 변경을 위한 인증코드 발송
-     *
-     * @param email 로그인된 사용자의 웹메일 주소
-     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우
-     */
+    
     public void sendPasswordResetCode(String email) {
         // 1. 사용자 존재 여부 확인
         if (!userRepository.findByEmail(email).isPresent()) {
@@ -137,13 +118,7 @@ public class UserService {
         log.info("비밀번호 변경용 인증코드 발송 완료: {}", email);
     }
 
-    /**
-     * 비밀번호 변경을 위한 인증코드 검증
-     *
-     * @param email 로그인된 사용자의 웹메일 주소
-     * @param code  입력한 인증코드
-     * @return 인증코드 일치 여부 (true: 일치, false: 불일치)
-     */
+
     public boolean verifyPasswordResetCode(String email, String code) {
         // 1. 사용자 존재 여부 확인
         if (!userRepository.findByEmail(email).isPresent()) {
@@ -162,12 +137,7 @@ public class UserService {
         return isValid;
     }
 
-    /**
-     * 비밀번호 변경을 위한 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
-     *
-     * @param email 로그인된 사용자의 웹메일 주소
-     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우
-     */
+    // 비밀번호 변경을 위한 인증코드 재전송 (기존 코드 초기화 후 새 코드 전송)
     public void resendPasswordResetCode(String email) {
         // 1. 사용자 존재 여부 확인
         if (!userRepository.findByEmail(email).isPresent()) {
@@ -180,14 +150,7 @@ public class UserService {
         log.info("비밀번호 변경용 인증코드 재전송 완료: {}", email);
     }
 
-    /**
-     * 비밀번호 변경 처리
-     *
-     * @param email           로그인된 사용자의 웹메일 주소
-     * @param newPassword     새로운 비밀번호
-     * @param confirmPassword 비밀번호 확인
-     * @throws IllegalArgumentException 유효성 검증 실패 시
-     */
+    // 비밀번호 변경 처리
     @Transactional
     public void changePassword(String email, String newPassword, String confirmPassword) {
         // 1. 사용자 존재 여부 확인
@@ -235,7 +198,7 @@ public class UserService {
             imgUrl = "/api/users/" + userId + "/profile-image";
         } else if (imgUrl == null || imgUrl.isEmpty()) {
             // 기본 이미지
-            imgUrl = "/images/default.svg";
+            imgUrl = DEFAULT_PROFILE_IMAGE;
         }
 
         return new MypageDto.InfoResponse(

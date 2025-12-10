@@ -1,6 +1,7 @@
 package taxi.tago.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,10 +29,14 @@ import java.io.IOException;
 import java.util.List;
 
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "유저 마커 API", description = "유저 위치 및 마지막 활동 시간 업데이트, 현재 접속 중인 유저 조회 (마지막 활동 시간이 3분 이내) 기능을 제공합니다.")
 public class UserController {
+
+    // 기본 프로필 이미지 경로
+    private static final String DEFAULT_PROFILE_IMAGE = "/images/default.png";
 
     private final UserMapService userMapService;
     private final UserService userService;
@@ -377,16 +382,22 @@ public class UserController {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-            // imgUrl이 없거나 기본 이미지인 경우
-            if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || user.getImgUrl().equals("/images/default.svg")) {
-                // 기본 이미지 반환 (static 리소스)
-                org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
+            // 기본 이미지인 경우 JAR 내부 정적 리소스에서 직접 제공
+            if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || 
+                user.getImgUrl().equals(DEFAULT_PROFILE_IMAGE) || 
+                user.getImgUrl().equals("/images/default.png")) {
+                org.springframework.core.io.Resource resource = 
+                    new org.springframework.core.io.ClassPathResource("static/images/default.png");
+                if (!resource.exists()) {
+                    resource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
+                }
                 if (resource.exists()) {
+                    String contentType = resource.getFilename() != null && resource.getFilename().endsWith(".svg")
+                        ? "image/svg+xml" : "image/png";
                     return ResponseEntity.ok()
-                            .contentType(org.springframework.http.MediaType.parseMediaType("image/svg+xml"))
+                            .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
                             .body(resource);
                 }
-                return ResponseEntity.notFound().build();
             }
 
             // 파일 경로에서 이미지 읽기
@@ -409,7 +420,20 @@ public class UserController {
                     .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
                     .body(resource);
         } catch (Exception e) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
+            log.error("프로필 이미지 조회 실패: userId={}, error={}", userId, e.getMessage());
+            // 오류 발생 시 기본 이미지 제공
+            try {
+                org.springframework.core.io.Resource resource = 
+                    new org.springframework.core.io.ClassPathResource("static/images/default.png");
+                if (resource.exists()) {
+                    return ResponseEntity.ok()
+                            .contentType(org.springframework.http.MediaType.IMAGE_PNG)
+                            .body(resource);
+                }
+            } catch (Exception ex) {
+                log.error("기본 이미지 제공 실패: {}", ex.getMessage());
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 }

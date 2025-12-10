@@ -27,11 +27,7 @@ public class NaverOcrService {
     @Value("${naver.ocr.url}")
     private String ocrUrl;
 
-    /**
-     * 이미지를 네이버 OCR API로 전송하여 텍스트 추출
-     * @param imageBytes 이미지 바이트 배열
-     * @return OCR 결과 JSON
-     */
+    // 이미지를 네이버 OCR API로 전송하여 텍스트 추출
     public OcrResult extractText(byte[] imageBytes) {
         try {
             // Base64 인코딩

@@ -11,11 +11,7 @@ public class PasswordValidator {
     private static final String SPECIAL_CHARS = "!@#$%^&*";
     private static final Pattern SPECIAL_CHAR_PATTERN = Pattern.compile(".*[" + Pattern.quote(SPECIAL_CHARS) + "].*");
     
-    /**
-     * 비밀번호 유효성 검증
-     * @param password 비밀번호
-     * @return 검증 결과 메시지 (null이면 유효함)
-     */
+    // 비밀번호 유효성 검증 (null이면 유효함)
     public static String validate(String password) {
         if (password == null || password.trim().isEmpty()) {
             return "비밀번호를 입력해주세요.";
@@ -34,12 +30,7 @@ public class PasswordValidator {
         return null; // 유효함
     }
     
-    /**
-     * 비밀번호 일치 여부 확인
-     * @param password 비밀번호
-     * @param confirmPassword 비밀번호 확인
-     * @return 일치 여부
-     */
+    // 비밀번호 일치 여부 확인
     public static boolean matches(String password, String confirmPassword) {
         if (password == null || confirmPassword == null) {
             return false;

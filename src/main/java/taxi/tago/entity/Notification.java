@@ -9,18 +9,7 @@ import taxi.tago.constant.NotificationType;
 
 import java.time.LocalDateTime;
 
-/**
- * 알림 엔티티
- * 
- * 웹앱 내부 알림 센터에 표시되는 알림 데이터를 저장합니다.
- * - receiver: 알림을 받는 사용자
- * - title: 알림 제목 (예: "정산요청이 들어왔어요.")
- * - body: 알림 본문 (예: "빠른 시일 내에 정산해 주세요.")
- * - type: 알림 유형 (정산요청, 후기도착, 참여수락 등)
- * - targetType: 클릭 시 이동할 화면 타입 (SETTLEMENT, REVIEW, TAXI_ROOM 등)
- * - targetId: 클릭 시 이동할 화면의 ID
- * - read: 읽음 여부 (false면 안 읽은 알림, true면 읽은 알림)
- */
+// 알림 엔티티 - 웹앱 내부 알림 센터에 표시되는 알림 데이터를 저장
 @Entity
 @Table(name = "notifications")
 @Getter
@@ -77,10 +66,7 @@ public class Notification {
         this.createdAt = LocalDateTime.now();
     }
 
-    /**
-     * 알림을 읽음 처리합니다.
-     * read = true로 변경하고 readAt을 현재 시각으로 설정합니다.
-     */
+    // 알림을 읽음 처리 (read = true로 변경하고 readAt을 현재 시각으로 설정)
     public void markAsRead() {
         this.read = true;
         this.readAt = LocalDateTime.now();

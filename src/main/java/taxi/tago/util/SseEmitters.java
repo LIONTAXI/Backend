@@ -8,16 +8,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * SSE(Server-Sent Events) Emitter 관리 클래스
- * 
- * 사용자별 SseEmitter를 관리하고, 알림 발생 시 해당 사용자에게 실시간으로 전송합니다.
- * 
- * 동작 방식:
- * 1. 사용자가 SSE 연결을 요청하면 SseEmitter를 생성하여 Map에 저장
- * 2. 알림이 생성되면 해당 사용자의 SseEmitter로 이벤트 전송
- * 3. 연결이 종료되면 Map에서 제거
- */
+// SSE(Server-Sent Events) Emitter 관리 클래스 - 사용자별 SseEmitter를 관리하고, 알림 발생 시 해당 사용자에게 실시간으로 전송
 @Slf4j
 @Component
 public class SseEmitters {
@@ -28,12 +19,7 @@ public class SseEmitters {
     // SSE 연결 타임아웃 (30분)
     private static final long TIMEOUT = 30 * 60 * 1000L;
 
-    /**
-     * 사용자별 SSE 연결 생성
-     * 
-     * @param userId 사용자 ID
-     * @return SseEmitter
-     */
+    // 사용자별 SSE 연결 생성
     public SseEmitter create(Long userId) {
         // 기존 연결이 있으면 제거
         remove(userId);
@@ -64,13 +50,7 @@ public class SseEmitters {
         return emitter;
     }
 
-    /**
-     * 특정 사용자에게 알림 전송
-     * 
-     * @param userId 사용자 ID
-     * @param eventName 이벤트 이름 (예: "notification")
-     * @param data 전송할 데이터
-     */
+    // 특정 사용자에게 알림 전송
     public void sendToUser(Long userId, String eventName, Object data) {
         SseEmitter emitter = emitters.get(userId);
         if (emitter != null) {
@@ -90,11 +70,7 @@ public class SseEmitters {
         }
     }
 
-    /**
-     * 특정 사용자의 SSE 연결 제거
-     * 
-     * @param userId 사용자 ID
-     */
+    // 특정 사용자의 SSE 연결 제거
     public void remove(Long userId) {
         SseEmitter emitter = emitters.remove(userId);
         if (emitter != null) {
@@ -103,9 +79,7 @@ public class SseEmitters {
         }
     }
 
-    /**
-     * 현재 연결된 사용자 수 조회
-     */
+    // 현재 연결된 사용자 수 조회
     public int getConnectionCount() {
         return emitters.size();
     }

@@ -6,12 +6,7 @@ import taxi.tago.entity.Notification;
 
 import java.time.LocalDateTime;
 
-/**
- * 알림 응답 DTO
- * 
- * 프론트엔드로 전달되는 알림 데이터
- * UI에서 알림 카드를 렌더링하는 데 필요한 모든 정보를 포함
- */
+// 알림 응답 DTO - 프론트엔드로 전달되는 알림 데이터 (UI에서 알림 카드를 렌더링하는 데 필요한 모든 정보 포함)
 @Getter
 @AllArgsConstructor
 public class NotificationDto {
@@ -40,12 +35,7 @@ public class NotificationDto {
     // 생성 시각 (프론트에서 "11:44" 또는 "10/31" 형식으로 표시)
     private LocalDateTime createdAt;
 
-    /**
-     * Notification 엔티티를 NotificationDto로 변환합니다.
-     * 
-     * @param notification Notification 엔티티
-     * @return NotificationDto
-     */
+    // Notification 엔티티를 NotificationDto로 변환
     public static NotificationDto from(Notification notification) {
         return new NotificationDto(
                 notification.getId(),
