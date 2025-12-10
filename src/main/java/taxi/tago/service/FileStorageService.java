@@ -52,29 +52,47 @@ public class FileStorageService {
     // 파일 경로로부터 파일을 읽어서 byte 배열로 반환 (상대 경로, 절대 경로 모두 지원)
     public byte[] loadImageFile(String filePath) throws IOException {
         if (filePath == null || filePath.trim().isEmpty()) {
+            log.error("파일 경로가 비어있습니다.");
             throw new IOException("파일 경로가 비어있습니다.");
         }
+
+        log.debug("이미지 파일 로드 시도: filePath={}", filePath);
 
         // 상대 경로와 절대 경로 모두 처리
         Path path = Paths.get(filePath);
         
         // 상대 경로인 경우 절대 경로로 변환 시도
         if (!path.isAbsolute()) {
+            log.debug("상대 경로 감지, 절대 경로 변환 시도: filePath={}", filePath);
             // 먼저 상대 경로로 시도
             if (!Files.exists(path)) {
                 // 상대 경로가 없으면 기본 업로드 경로 기준으로 시도
                 Path absolutePath = Paths.get(uploadPath).resolve(filePath).normalize();
+                log.debug("기본 업로드 경로 기준으로 시도: absolutePath={}", absolutePath);
                 if (Files.exists(absolutePath)) {
                     path = absolutePath;
+                    log.debug("파일 찾음: path={}", path);
                 }
+            } else {
+                log.debug("상대 경로로 파일 찾음: path={}", path);
             }
+        } else {
+            log.debug("절대 경로로 파일 찾기 시도: path={}", path);
         }
         
         if (!Files.exists(path)) {
+            log.error("파일을 찾을 수 없습니다: filePath={}, 시도한 경로={}", filePath, path.toAbsolutePath());
             throw new IOException("파일을 찾을 수 없습니다: " + filePath);
         }
         
-        return Files.readAllBytes(path);
+        try {
+            byte[] bytes = Files.readAllBytes(path);
+            log.debug("이미지 파일 로드 성공: filePath={}, 크기={} bytes", filePath, bytes.length);
+            return bytes;
+        } catch (IOException e) {
+            log.error("파일 읽기 실패: filePath={}, error={}", filePath, e.getMessage(), e);
+            throw new IOException("파일을 읽는 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
     }
 }
 

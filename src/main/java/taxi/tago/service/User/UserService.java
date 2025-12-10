@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import taxi.tago.constant.UserRole;
 import taxi.tago.dto.MypageDto;
 import taxi.tago.entity.User;
 import taxi.tago.repository.UserRepository;
@@ -41,8 +42,8 @@ public class UserService {
 
         // 2. 이미 가입된 이메일인지 확인
         // 주의: 환경변수로 관리되는 관리자 계정은 체크하지 않음 (관리자 계정과 일반 사용자 계정은 같은 이메일로 공존 가능)
-        // DB에 저장된 일반 사용자 계정만 체크
-        if (userRepository.findByEmail(email).isPresent()) {
+        // DB에 저장된 USER role의 일반 사용자 계정만 체크 (ADMIN role은 제외)
+        if (userRepository.findByEmailAndRole(email, UserRole.USER).isPresent()) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 

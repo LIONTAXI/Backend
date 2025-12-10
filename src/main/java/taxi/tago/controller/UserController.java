@@ -362,15 +362,33 @@ public class UserController {
     // 마이페이지_프로필수정_프로필사진업로드
     @PutMapping(value = "/api/users/profile-image", consumes = "multipart/form-data")
     @Operation(summary = "프로필 사진 수정", description = "이미지 파일을 업로드하여 프로필 사진을 변경합니다.")
-    public String updateProfileImage(
-            @RequestPart(value = "file") MultipartFile file,
+    public ResponseEntity<String> updateProfileImage(
+            @RequestParam(value = "file") MultipartFile file,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        if (userDetails == null) throw new IllegalArgumentException("로그인이 필요합니다.");
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        
         try {
-            return userService.updateProfileImage(userDetails.getUserId(), file);
+            // 파일 검증
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body("업로드할 이미지가 없습니다.");
+            }
+            
+            String result = userService.updateProfileImage(userDetails.getUserId(), file);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            log.warn("프로필 이미지 업로드 검증 실패: userId={}, error={}", userDetails.getUserId(), e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IOException e) {
-            throw new RuntimeException("파일 저장 실패", e);
+            log.error("프로필 이미지 저장 실패: userId={}, error={}", userDetails.getUserId(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("파일 저장에 실패했습니다: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("프로필 이미지 업로드 중 예상치 못한 오류: userId={}, error={}", userDetails.getUserId(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("프로필 이미지 업로드 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -384,51 +402,99 @@ public class UserController {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+            String imgUrl = user.getImgUrl();
+            log.debug("프로필 이미지 조회: userId={}, imgUrl={}", userId, imgUrl);
+
             // 기본 이미지인 경우 정적 리소스에서 읽기
-            if (user.getImgUrl() == null || user.getImgUrl().isEmpty() || 
-                user.getImgUrl().equals(DEFAULT_PROFILE_IMAGE) || 
-                user.getImgUrl().equals("/images/default.png")) {
+            if (imgUrl == null || imgUrl.isEmpty() || 
+                imgUrl.equals(DEFAULT_PROFILE_IMAGE) || 
+                imgUrl.equals("/images/default.png")) {
+                log.debug("기본 이미지 조회 시도: userId={}", userId);
+                
+                org.springframework.core.io.Resource classPathResource = 
+                    new org.springframework.core.io.ClassPathResource("static/images/default.png");
+                if (!classPathResource.exists()) {
+                    log.debug("default.png를 찾을 수 없어 default.svg 시도: userId={}", userId);
+                    classPathResource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
+                }
+                
+                if (classPathResource.exists()) {
+                    try {
+                        byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
+                        org.springframework.core.io.ByteArrayResource resource = 
+                            new org.springframework.core.io.ByteArrayResource(imageBytes);
+                        
+                        String contentType = classPathResource.getFilename() != null && classPathResource.getFilename().endsWith(".svg")
+                            ? "image/svg+xml" : "image/png";
+                        log.debug("기본 이미지 조회 성공: userId={}, contentType={}", userId, contentType);
+                        return ResponseEntity.ok()
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
+                                .body(resource);
+                    } catch (IOException e) {
+                        log.error("기본 이미지 읽기 실패: userId={}, error={}", userId, e.getMessage(), e);
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                    }
+                } else {
+                    log.warn("기본 이미지 파일을 찾을 수 없음: userId={}", userId);
+                    return ResponseEntity.notFound().build();
+                }
+            }
+
+            // 업로드된 이미지인 경우 FileStorageService로 읽기 
+            try {
+                log.debug("업로드된 이미지 조회 시도: userId={}, imgUrl={}", userId, imgUrl);
+                byte[] imageBytes = fileStorageService.loadImageFile(imgUrl);
+                org.springframework.core.io.ByteArrayResource resource = new org.springframework.core.io.ByteArrayResource(imageBytes);
+
+                // 이미지 타입 결정
+                String contentType = "image/jpeg";
+                String imagePath = imgUrl.toLowerCase();
+                if (imagePath.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (imagePath.endsWith(".gif")) {
+                    contentType = "image/gif";
+                } else if (imagePath.endsWith(".svg")) {
+                    contentType = "image/svg+xml";
+                }
+
+                log.debug("업로드된 이미지 조회 성공: userId={}, contentType={}", userId, contentType);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
+                        .body(resource);
+            } catch (IOException e) {
+                log.error("업로드된 이미지 읽기 실패: userId={}, imgUrl={}, error={}", userId, imgUrl, e.getMessage(), e);
+                // 업로드된 이미지를 읽을 수 없으면 기본 이미지로 폴백
                 org.springframework.core.io.Resource classPathResource = 
                     new org.springframework.core.io.ClassPathResource("static/images/default.png");
                 if (!classPathResource.exists()) {
                     classPathResource = new org.springframework.core.io.ClassPathResource("static/images/default.svg");
                 }
                 if (classPathResource.exists()) {
-                    byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
-                    org.springframework.core.io.ByteArrayResource resource = 
-                        new org.springframework.core.io.ByteArrayResource(imageBytes);
-                    
-                    String contentType = classPathResource.getFilename() != null && classPathResource.getFilename().endsWith(".svg")
-                        ? "image/svg+xml" : "image/png";
-                    return ResponseEntity.ok()
-                            .contentType(MediaType.parseMediaType(contentType))
-                            .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
-                            .body(resource);
+                    try {
+                        byte[] imageBytes = classPathResource.getInputStream().readAllBytes();
+                        org.springframework.core.io.ByteArrayResource resource = 
+                            new org.springframework.core.io.ByteArrayResource(imageBytes);
+                        String contentType = classPathResource.getFilename() != null && classPathResource.getFilename().endsWith(".svg")
+                            ? "image/svg+xml" : "image/png";
+                        log.info("업로드된 이미지 읽기 실패로 기본 이미지 반환: userId={}", userId);
+                        return ResponseEntity.ok()
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
+                                .body(resource);
+                    } catch (IOException fallbackException) {
+                        log.error("기본 이미지 폴백도 실패: userId={}, error={}", userId, fallbackException.getMessage());
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                    }
                 }
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
-
-            // 업로드된 이미지인 경우 FileStorageService로 읽기 
-            byte[] imageBytes = fileStorageService.loadImageFile(user.getImgUrl());
-            org.springframework.core.io.ByteArrayResource resource = new org.springframework.core.io.ByteArrayResource(imageBytes);
-
-            // 이미지 타입 결정
-            String contentType = "image/jpeg";
-            String imagePath = user.getImgUrl().toLowerCase();
-            if (imagePath.endsWith(".png")) {
-                contentType = "image/png";
-            } else if (imagePath.endsWith(".gif")) {
-                contentType = "image/gif";
-            } else if (imagePath.endsWith(".svg")) {
-                contentType = "image/svg+xml";
-            }
-
-            return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"profile\"")
-                    .body(resource);
+        } catch (IllegalArgumentException e) {
+            log.error("사용자를 찾을 수 없음: userId={}, error={}", userId, e.getMessage());
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("프로필 이미지 조회 실패: userId={}, error={}", userId, e.getMessage());
+            log.error("프로필 이미지 조회 실패: userId={}, error={}", userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
