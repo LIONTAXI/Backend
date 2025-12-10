@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 "/images/**" // 정적 리소스 (기본 이미지 등)
                         ).permitAll() // 로그인 및 인증 관련 엔드포인트, Swagger UI는 인증 불필요
                         .requestMatchers(HttpMethod.GET, "/api/map").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/profile-image").permitAll() // 프로필 이미지 조회는 인증 없이 접근 가능 (ORB 오류 방지)
                         .requestMatchers(HttpMethod.GET, "/api/taxi-party/*/requests").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/taxi-party/**").permitAll()
                         .requestMatchers(
