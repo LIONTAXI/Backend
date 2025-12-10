@@ -204,13 +204,35 @@ public class EmailAuthController {
                 ));
             }
 
+            // 도서관 인증 정보의 학번과 이름이 유효한지 확인
+            String studentId = authInfo.getStudentId();
+            String name = authInfo.getName();
+            
+            if (studentId == null || studentId.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "도서관 전자출입증 인증 정보에 학번이 없습니다. 도서관 전자출입증을 다시 등록해주세요.",
+                        request.getEmail(),
+                        null
+                ));
+            }
+            
+            if (name == null || name.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new EmailAuthResponse(
+                        false,
+                        "도서관 전자출입증 인증 정보에 이름이 없습니다. 도서관 전자출입증을 다시 등록해주세요.",
+                        request.getEmail(),
+                        null
+                ));
+            }
+
             // 회원가입 처리 (이전에 저장된 학번과 이름 사용)
             userService.register(
                     request.getEmail(), 
                     request.getPassword(), 
                     request.getConfirmPassword(),
-                    authInfo.getStudentId(),
-                    authInfo.getName()
+                    studentId,
+                    name
             );
             
             // 회원가입 완료 후 도서관 인증 정보 제거
