@@ -90,15 +90,25 @@ public class SettlementService {
         // DB에 저장 (Cascade 처리로 participant도 함께 INSERT)
         Settlement saved = settlementRepository.save(settlement);
 
-        // 총대를 제외한 참여자들에게 정산 요청 알림 발송
+        // 총대를 제외한 참여자들에게 정산 요청 알림 발송 (요청 알림과 동일한 방식으로 처리)
         String hostName = host.getName() != null ? host.getName() : "총대슈니";
         saved.getParticipants().stream()
                 .filter(p -> !p.getUser().getId().equals(hostId)) // 총대 제외
-                .forEach(p -> notificationService.sendSettlementRequest(
-                        p.getUser().getId(),
-                        saved.getId(),
-                        hostName
-                ));
+                .forEach(p -> {
+                    try {
+                        notificationService.sendSettlementRequest(
+                                p.getUser().getId(),
+                                saved.getId(),
+                                hostName
+                        );
+                        log.debug("정산 요청 알림 전송 성공: receiverId={}, settlementId={}", 
+                                p.getUser().getId(), saved.getId());
+                    } catch (Exception e) {
+                        log.error("정산 요청 알림 전송 중 오류 발생 (정산 생성은 성공): receiverId={}, settlementId={}, error={}", 
+                                p.getUser().getId(), saved.getId(), e.getMessage(), e);
+                        // 알림 실패해도 정산 생성은 성공 처리
+                    }
+                });
 
         // 채팅방에 정산 안내 메시지 자동 전송
         sendSettlementChatMessage(saved, host, false); // false = 최초 생성용 메시지
@@ -208,15 +218,25 @@ public class SettlementService {
                 ? settlement.getHost().getName()
                 : "총대슈니";
 
-        // 아직 납부하지 않은 참여자들에게만 재촉 알림 발송 (총대 본인 제외)
+        // 아직 납부하지 않은 참여자들에게만 재촉 알림 발송 (총대 본인 제외) (요청 알림과 동일한 방식으로 처리)
         settlement.getParticipants().stream()
                 .filter(p -> !p.isPaid()) // 미납자만
                 .filter(p -> !p.getUser().getId().equals(hostId)) // 총대 제외
-                .forEach(p -> notificationService.sendSettlementRemind(
-                        p.getUser().getId(),
-                        settlement.getId(),
-                        hostName
-                ));
+                .forEach(p -> {
+                    try {
+                        notificationService.sendSettlementRemind(
+                                p.getUser().getId(),
+                                settlement.getId(),
+                                hostName
+                        );
+                        log.debug("정산 재촉 알림 전송 성공: receiverId={}, settlementId={}", 
+                                p.getUser().getId(), settlement.getId());
+                    } catch (Exception e) {
+                        log.error("정산 재촉 알림 전송 중 오류 발생 (재촉은 성공): receiverId={}, settlementId={}, error={}", 
+                                p.getUser().getId(), settlement.getId(), e.getMessage(), e);
+                        // 알림 실패해도 재촉은 성공 처리
+                    }
+                });
 
         // 채팅방에도 정산 안내 메시지를 다시 전송 (재촉용)
         sendSettlementChatMessage(settlement, settlement.getHost(), true); // true = 재촉용 메시지

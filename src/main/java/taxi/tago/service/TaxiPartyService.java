@@ -242,13 +242,19 @@ public class TaxiPartyService {
         // 채팅방 ID 조회 (채팅방이 없을 수도 있으므로 Optional 처리)
         Long roomId = chatRoomRepository.findByTaxiPartyId(taxiPartyId)
                 .map(room -> room.getId())
-                .orElse(null); // 채팅방이 없으면 null
+                .orElse(taxiPartyId); // 채팅방이 없으면 taxiPartyId 사용 (알림은 항상 전송)
         
         String hostName = party.getUser().getName() != null ? party.getUser().getName() : "총대슈니";
         
-        // 채팅방이 존재하는 경우에만 알림 전송 (채팅방이 없으면 roomId가 null이므로 알림은 보내지 않음)
-        if (roomId != null) {
+        // 알림 전송 (요청 알림과 동일한 방식으로 처리)
+        try {
             notificationService.sendTaxiParticipationAccepted(acceptedUserId, roomId, hostName);
+            log.info("택시팟 참여 수락 알림 전송 성공: acceptedUserId={}, roomId={}, hostName={}", 
+                    acceptedUserId, roomId, hostName);
+        } catch (Exception e) {
+            log.error("알림 전송 중 오류 발생 (수락은 성공): acceptedUserId={}, roomId={}, error={}", 
+                    acceptedUserId, roomId, e.getMessage(), e);
+            // 알림 실패해도 수락은 성공 처리
         }
 
         return "같이 타기 요청 수락 성공, 수락한 동승슈니 ID: " + acceptedUserId;
