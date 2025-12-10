@@ -62,7 +62,7 @@ public class NotificationService {
     // 각 도메인 이벤트 발생 시 호출되는 메서드들입니다.
 
     // 정산요청 알림 생성 (정산요청이 발생했을 때 호출)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendSettlementRequest(Long receiverId, Long settlementId, String requesterName) {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -80,12 +80,19 @@ public class NotificationService {
         log.info("정산요청 알림 DB 저장 완료: notificationId={}, receiverId={}, settlementId={}", 
                 saved.getId(), receiverId, settlementId);
         
-        // SSE로 실시간 알림 전송
-        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        // SSE로 실시간 알림 전송 (실패해도 알림은 이미 DB에 저장됨)
+        try {
+            sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+            log.debug("정산요청 알림 SSE 전송 성공: receiverId={}, notificationId={}", 
+                    receiverId, saved.getId());
+        } catch (Exception e) {
+            log.warn("정산요청 알림 SSE 전송 실패 (DB 저장은 완료): receiverId={}, notificationId={}, error={}", 
+                    receiverId, saved.getId(), e.getMessage());
+        }
     }
 
     // 정산 재촉 알림 생성 (정산이 지연되어 재촉할 때 호출)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendSettlementRemind(Long receiverId, Long settlementId, String requesterName) {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -103,12 +110,19 @@ public class NotificationService {
         log.info("정산 재촉 알림 DB 저장 완료: notificationId={}, receiverId={}, settlementId={}, requesterName={}", 
                 saved.getId(), receiverId, settlementId, requesterName);
         
-        // SSE로 실시간 알림 전송
-        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        // SSE로 실시간 알림 전송 (실패해도 알림은 이미 DB에 저장됨)
+        try {
+            sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+            log.debug("정산 재촉 알림 SSE 전송 성공: receiverId={}, notificationId={}", 
+                    receiverId, saved.getId());
+        } catch (Exception e) {
+            log.warn("정산 재촉 알림 SSE 전송 실패 (DB 저장은 완료): receiverId={}, notificationId={}, error={}", 
+                    receiverId, saved.getId(), e.getMessage());
+        }
     }
 
     // 후기 도착 알림 생성 (후기가 작성되어 도착했을 때 호출)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendReviewArrived(Long receiverId, Long reviewId) {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -126,8 +140,15 @@ public class NotificationService {
         log.info("후기 도착 알림 DB 저장 완료: notificationId={}, receiverId={}, reviewId={}", 
                 saved.getId(), receiverId, reviewId);
         
-        // SSE로 실시간 알림 전송
-        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        // SSE로 실시간 알림 전송 (실패해도 알림은 이미 DB에 저장됨)
+        try {
+            sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+            log.debug("후기 도착 알림 SSE 전송 성공: receiverId={}, notificationId={}", 
+                    receiverId, saved.getId());
+        } catch (Exception e) {
+            log.warn("후기 도착 알림 SSE 전송 실패 (DB 저장은 완료): receiverId={}, notificationId={}, error={}", 
+                    receiverId, saved.getId(), e.getMessage());
+        }
     }
 
     // 택시팟 참여 요청 알림 생성 (동승슈니가 택시팟에 참여 요청을 보냈을 때 총대에게 알림)
@@ -161,7 +182,7 @@ public class NotificationService {
     }
 
     // 택시팟 참여 수락 알림 생성 (택시팟 참여 요청이 수락되었을 때 호출)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendTaxiParticipationAccepted(Long receiverId, Long roomId, String hostName) {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -179,8 +200,15 @@ public class NotificationService {
         log.info("택시팟 참여 수락 알림 DB 저장 완료: notificationId={}, receiverId={}, roomId={}, hostName={}", 
                 saved.getId(), receiverId, roomId, hostName);
         
-        // SSE로 실시간 알림 전송
-        sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+        // SSE로 실시간 알림 전송 (실패해도 알림은 이미 DB에 저장됨)
+        try {
+            sseEmitters.sendToUser(receiverId, "notification", NotificationDto.from(saved));
+            log.debug("택시팟 참여 수락 알림 SSE 전송 성공: receiverId={}, notificationId={}", 
+                    receiverId, saved.getId());
+        } catch (Exception e) {
+            log.warn("택시팟 참여 수락 알림 SSE 전송 실패 (DB 저장은 완료): receiverId={}, notificationId={}, error={}", 
+                    receiverId, saved.getId(), e.getMessage());
+        }
     }
 }
 
