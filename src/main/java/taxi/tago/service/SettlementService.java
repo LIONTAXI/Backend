@@ -116,6 +116,10 @@ public class SettlementService {
         // 채팅방에 정산 안내 메시지 자동 전송
         sendSettlementChatMessage(saved, host, false); // false = 최초 생성용 메시지
 
+        // 정산 생성 직후, "총대슈니가 정산 정보를 입력했어요" 시스템 메시지 전송
+        sendSettlementInfoEnteredMessage(saved, host);
+
+
         log.info("정산 생성 완료: settlementId={}, taxiPartyId={}, hostId={}",
                 saved.getId(), taxiParty.getId(), hostId);
 
@@ -301,7 +305,7 @@ public class SettlementService {
                         }
                     }
 
-                    // ChatMEssage 엔티티 생성
+                    // ChatMEssage 엔티티 생성 (은행/금액 안내 -> 일반 TEXT 메시지)
                     ChatMessage message = ChatMessage.createTextMessage(
                             chatRoom,
                             host,
@@ -316,6 +320,35 @@ public class SettlementService {
                     ChatMessage saved = chatMessageRepository.save(message);
 
                     // 저장된 메시지를 DTO로 변환해서 해당 채팅방을 구독 중인 모든 클라이언트에게 WebSocket(STOMP) 브로드캐스트
+                    ChatMessageResponse response = ChatMessageResponse.from(saved);
+                    String destination = "/topic/chatrooms/" + chatRoom.getId();
+                    messagingTemplate.convertAndSend(destination, response);
+                });
+    }
+
+    /* 추가 메서드 */
+    // 정산 생성 직후 한 번 보내는 시스템 안내 메시지
+    // "총대슈니가 정산 정보를 입력했어요. 빠른 시일 내에 정산해 주세요."
+    private void sendSettlementInfoEnteredMessage(Settlement settlement, User host) {
+        chatRoomRepository.findByTaxiPartyId(settlement.getTaxiParty().getId())
+                .ifPresent(chatRoom -> {
+                    if (chatRoom.isClosed())
+                        return;
+
+                    String content = "총대슈니가 정산 정보를 입력했어요. 빠른 시일 내에 정산해 주세요.";
+
+                    // 시스템 메시지 팩토리 사용 (MessageType.SYSTEM)
+                    ChatMessage message = ChatMessage.createSystemMessage(
+                            chatRoom,
+                            host,
+                            content
+                    );
+
+                    LocalDateTime now = LocalDateTime.now();
+                    chatRoom.updateMessage(content, now);
+
+                    ChatMessage saved = chatMessageRepository.save(message);
+
                     ChatMessageResponse response = ChatMessageResponse.from(saved);
                     String destination = "/topic/chatrooms/" + chatRoom.getId();
                     messagingTemplate.convertAndSend(destination, response);

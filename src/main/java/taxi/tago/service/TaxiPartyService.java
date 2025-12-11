@@ -2,12 +2,14 @@ package taxi.tago.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.constant.TaxiPartyStatus;
 import taxi.tago.constant.ParticipationStatus;
 import taxi.tago.dto.TaxiPartyDto;
 import taxi.tago.dto.TaxiUserDto;
+import taxi.tago.dto.chat.ChatMessageResponse;
 import taxi.tago.entity.*;
 import taxi.tago.repository.*;
 import taxi.tago.service.NotificationService;
@@ -35,6 +37,7 @@ public class TaxiPartyService {
             "🐸", "♥️", "🦔", "🐢", "🐟", "🐬", "🐙", "🐥", "🦋", "🐌"
     );
     private final ChatMessageRepository chatMessageRepository;
+    private final SimpMessagingTemplate simpMessagingTemplate; // 서버에서 시스템 메시지 발송을 위한 의존성
 
     @Transactional
     public Long createTaxiParty(TaxiPartyDto.CreateRequest dto) {
@@ -276,7 +279,44 @@ public class TaxiPartyService {
         // 상태 변경
         party.setStatus(TaxiPartyStatus.FINISHED);
 
+        // 매칭 종료 직후, 채팅방에 "목적지 도착 후 정산 입력 요청" 시스템 메시지 전송
+        sendArrivalSettlementGuideMessage(party);
+
+
         return "매칭이 종료되었습니다. 택시팟 ID: " + partyId;
+    }
+
+    /* 메시지 관련 추가 메서드 */
+    // 매칭이 FINISHED 로 바뀐 뒤 채팅방에 한 번만 보내는 시스템 안내 메시지
+    // "목적지에 도착했다면 총대슈니는 정산 정보를 입력해 주세요"
+    private void sendArrivalSettlementGuideMessage(TaxiParty party) {
+        chatRoomRepository.findByTaxiPartyId(party.getId())
+                .ifPresent(chatRoom -> {
+                    // 이미 종료된 채팅방이면 메시지 전송 X
+                    if (chatRoom.isClosed()) {
+                        return;
+                    }
+
+                    String content = "목적지에 도착했다면 총대슈니는 정산 정보를 입력해 주세요";
+
+                    // 총대슈니가 보낸 시스템 메시지 형태로 저장 (시스템 메시지 팩토리 사용)
+                    ChatMessage message = ChatMessage.createSystemMessage(
+                            chatRoom,
+                            party.getUser(), // 총대슈니
+                            content
+                    );
+
+                    LocalDateTime now = LocalDateTime.now();
+                    chatRoom.updateMessage(content, now);
+
+                    ChatMessage saved = chatMessageRepository.save(message);
+
+                    // WebSocket 구독자들에게 브로드캐스트
+                    ChatMessageResponse response = ChatMessageResponse.from(saved);
+                    String destination = "/topic/chatrooms/" + chatRoom.getId();
+                    simpMessagingTemplate.convertAndSend(destination, response);
+
+                });
     }
 
     // 택시팟 상세페이지 - 총대슈니 - 택시팟 삭제
@@ -348,12 +388,12 @@ public class TaxiPartyService {
         // 상태 변경
         taxiUser.changeStatus(ParticipationStatus.KICKED);
 
-        // 시스템 메시지 채팅방에 전송
+        // 시스템 메시지 채팅방에 전송 (SYSTEM 타입)
         chatRoomRepository.findByTaxiPartyId(taxiPartyId)
                 .ifPresent(chatRoom -> {
-                    ChatMessage msg = ChatMessage.createTextMessage(
+                    ChatMessage msg = ChatMessage.createSystemMessage(
                             chatRoom,
-                            taxiParty.getUser(), // 총대가 보낸 걸로 처리
+                            taxiParty.getUser(),
                             targetUserId + "님이 내보내졌습니다."
                     );
                     chatMessageRepository.save(msg);
