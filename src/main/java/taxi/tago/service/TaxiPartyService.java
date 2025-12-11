@@ -167,11 +167,17 @@ public class TaxiPartyService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다."));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+
         if (party.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("해당 택시팟의 총대슈니입니다.");
         }
         if (taxiUserRepository.existsByTaxiPartyIdAndUserId(partyId, userId)) {
             throw new IllegalArgumentException("이미 요청을 보낸 택시팟입니다.");
+        }
+
+        // 모집 인원 초과 확인
+        if (party.getCurrentParticipants() >= party.getMaxParticipants()) {
+            throw new IllegalArgumentException("모집 인원이 마감되어 더 이상 신청할 수 없습니다.");
         }
 
         // 요청 정보 저장
@@ -231,6 +237,11 @@ public class TaxiPartyService {
 
         if (!party.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("총대슈니만 참여 요청을 수락할 수 있습니다.");
+        }
+
+        // 수락 시점에도 인원 마감 확인
+        if (party.getCurrentParticipants() >= party.getMaxParticipants()) {
+            throw new IllegalArgumentException("이미 모집 인원이 꽉 차서 더 이상 수락할 수 없습니다.");
         }
 
         // 해당 동승슈니의 같이 타기 요청 수락
@@ -355,6 +366,10 @@ public class TaxiPartyService {
             throw new IllegalArgumentException("총대슈니만 수정할 수 있습니다.");
         }
 
+        // 현재 인원보다 적게 최대 인원을 설정하지 못하도록 막기
+        if (dto.getMaxParticipants() < party.getCurrentParticipants()) {
+            throw new IllegalArgumentException("현재까지 모인 인원보다 적게 모집 인원을 설정할 수 없습니다.");
+        }
 
         LocalDateTime meetingDateTime = LocalDateTime.of(LocalDate.now(), dto.getMeetingTime());
 
@@ -387,6 +402,9 @@ public class TaxiPartyService {
 
         // 상태 변경
         taxiUser.changeStatus(ParticipationStatus.KICKED);
+
+        // 강퇴했으니 현재 인원 1명 감소
+        taxiParty.setCurrentParticipants(taxiParty.getCurrentParticipants() - 1);
 
         // 시스템 메시지 채팅방에 전송 (SYSTEM 타입)
         chatRoomRepository.findByTaxiPartyId(taxiPartyId)
