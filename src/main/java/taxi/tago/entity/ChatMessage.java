@@ -45,7 +45,7 @@ public class ChatMessage {
     @Column(name = "sent_at", nullable = false, updatable = false)
     private LocalDateTime sentAt;
 
-    // 정적 팩토리 메서드
+    // 일반 텍스트 메시지용 팩토리 메서드
     public static ChatMessage createTextMessage(ChatRoom chatRoom, User sender, String content) {
         if (chatRoom == null) {
             throw new IllegalArgumentException("메시지 생성 시 ChatRoom은 필수입니다.");
@@ -60,7 +60,27 @@ public class ChatMessage {
         ChatMessage message = new ChatMessage();
         message.chatRoom = chatRoom;
         message.sender = sender;
-        message.messageType = MessageType.TEXT;
+        message.messageType = MessageType.TEXT; // 일반 채팅
+        message.content = content;
+        return message;
+    }
+
+    // 시스템 안내 메시지용 팩토리 메서드
+    public static ChatMessage createSystemMessage(ChatRoom chatRoom, User sender, String content) {
+        if (chatRoom == null) {
+            throw new IllegalArgumentException("메시지 생성 시 ChatRoom은 필수입니다.");
+        }
+        if (sender == null) {
+            throw new IllegalArgumentException("메시지 생성 시 sender는 필수입니다.");
+        }
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("메시지 내용은 비어있을 수 없습니다.");
+        }
+
+        ChatMessage message = new ChatMessage();
+        message.chatRoom = chatRoom;
+        message.sender = sender;
+        message.messageType = MessageType.SYSTEM; // 시스템 메시지로 구분
         message.content = content;
         return message;
     }

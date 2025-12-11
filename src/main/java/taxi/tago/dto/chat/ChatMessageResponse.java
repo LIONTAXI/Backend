@@ -20,6 +20,9 @@ public class ChatMessageResponse {
 
     private String content;
 
+    // 메시지 타입(TEXT / SYSTEM)을 구분할 수 있도록 추가
+    private String messageType;
+
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime sentAt;
 
@@ -30,6 +33,7 @@ public class ChatMessageResponse {
             String name,
             String shortStudentId,
             String content,
+            String messageType,
             LocalDateTime sentAt
     ) {
         this.messageId = messageId;
@@ -38,6 +42,7 @@ public class ChatMessageResponse {
         this.name = name;
         this.shortStudentId = shortStudentId;
         this.content = content;
+        this.messageType = messageType;
         this.sentAt = sentAt;
     }
 
@@ -49,6 +54,7 @@ public class ChatMessageResponse {
                 message.getSender().getName(),
                 message.getSender().getShortStudentId(),
                 message.getContent(),
+                message.getMessageType().name(), // ENUM → "TEXT" / "SYSTEM" 으로 내려줌
                 message.getSentAt()
         );
     }
