@@ -239,6 +239,11 @@ public class TaxiPartyService {
             throw new IllegalArgumentException("총대슈니만 참여 요청을 수락할 수 있습니다.");
         }
 
+        // 수락 시점에도 인원 마감 확인
+        if (party.getCurrentParticipants() >= party.getMaxParticipants()) {
+            throw new IllegalArgumentException("이미 모집 인원이 꽉 차서 더 이상 수락할 수 없습니다.");
+        }
+
         // 해당 동승슈니의 같이 타기 요청 수락
         taxiUser.setStatus(ParticipationStatus.ACCEPTED);
 
