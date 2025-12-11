@@ -4,8 +4,7 @@
 
 ---
 ## 🔗 배포 링크
-[**swushoong_BE**](https://swushoong.click/)
-[**swushoong_FE**](https://frontend-lac-nine-20.vercel.app/)
+[**swushoong_BE**](https://swushoong.click/) / [**swushoong_FE**](https://frontend-lac-nine-20.vercel.app/)
 
 ---
 ## 📚 Tech Stack
