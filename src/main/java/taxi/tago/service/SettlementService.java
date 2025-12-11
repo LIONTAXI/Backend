@@ -2,9 +2,11 @@ package taxi.tago.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import taxi.tago.dto.SettlementDto;
+import taxi.tago.dto.chat.ChatMessageResponse;
 import taxi.tago.entity.*;
 import taxi.tago.repository.*;
 
@@ -27,6 +29,7 @@ public class SettlementService {
     private final NotificationService notificationService;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 정산 생성 메서드
     @Transactional
@@ -310,7 +313,12 @@ public class SettlementService {
                     chatRoom.updateMessage(messageContent, now);
 
                     // DB에 메시지 저장
-                    chatMessageRepository.save(message);
+                    ChatMessage saved = chatMessageRepository.save(message);
+
+                    // 저장된 메시지를 DTO로 변환해서 해당 채팅방을 구독 중인 모든 클라이언트에게 WebSocket(STOMP) 브로드캐스트
+                    ChatMessageResponse response = ChatMessageResponse.from(saved);
+                    String destination = "/topic/chatrooms/" + chatRoom.getId();
+                    messagingTemplate.convertAndSend(destination, response);
                 });
     }
 
@@ -341,7 +349,7 @@ public class SettlementService {
                     boolean isHost = settlement.getHost().getId().equals(userId);
 
                     boolean isParticipant = settlement.getParticipants().stream()
-                            .anyMatch(p -> p.getUser().equals(userId));
+                            .anyMatch(p -> p.getUser().getId().equals(userId));
 
                     if (!isHost && !isParticipant) {
                         // 정산은 있지만 이 유저는 관련이 없는 경우 -> 권한 없음
