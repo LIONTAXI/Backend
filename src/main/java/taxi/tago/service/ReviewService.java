@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 // 택시팟 후기 관련 비즈니스 로직을 담당하는 서비스 클래스
 @Slf4j
@@ -30,6 +29,7 @@ public class ReviewService {
     private final TaxiUserRepository taxiUserRepository; // 동승슈니 매핑 조회용
     private final ReviewRepository reviewRepository; // 후기를 실제로 저장/조회하는 레포지토리
     private final SettlementParticipantRepository settlementParticipantRepository; // 미정산 이력 개수를 계산하기 위해 사용
+    private final NotificationService notificationService; // 후기 도착 알림 전송용
 
     // 후기 작성 메서드
     @Transactional
@@ -90,6 +90,17 @@ public class ReviewService {
 
         log.info("리뷰 생성 완료: reviewId={}, taxiPartyId={}, reviewerId={}, revieweeId={}",
                 saved.getId(), taxiParty.getId(), reviewerId, reviewee.getId());
+
+        // 후기 도착 알림 전송 (후기를 받은 사용자에게 알림)
+        try {
+            notificationService.sendReviewArrived(request.getRevieweeId(), saved.getId());
+            log.info("후기 도착 알림 전송 요청 완료: revieweeId={}, reviewId={}", 
+                    request.getRevieweeId(), saved.getId());
+        } catch (Exception e) {
+            // 알림 전송 실패해도 후기 생성은 성공한 것으로 처리
+            log.error("후기 도착 알림 전송 실패 (후기 생성은 완료): revieweeId={}, reviewId={}, error={}", 
+                    request.getRevieweeId(), saved.getId(), e.getMessage(), e);
+        }
 
         return saved.getId();
     }
