@@ -167,11 +167,17 @@ public class TaxiPartyService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 택시팟이 존재하지 않습니다."));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+
         if (party.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("해당 택시팟의 총대슈니입니다.");
         }
         if (taxiUserRepository.existsByTaxiPartyIdAndUserId(partyId, userId)) {
             throw new IllegalArgumentException("이미 요청을 보낸 택시팟입니다.");
+        }
+
+        // 모집 인원 초과 확인
+        if (party.getCurrentParticipants() >= party.getMaxParticipants()) {
+            throw new IllegalArgumentException("모집 인원이 마감되어 더 이상 신청할 수 없습니다.");
         }
 
         // 요청 정보 저장
