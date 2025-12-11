@@ -91,10 +91,10 @@ public class EmailAuthController {
             boolean isValid = emailAuthService.verifyAuthCode(request.getEmail(), request.getCode());
             
             if (isValid) {
-                // 인증 성공: 도서관 전자출입증 인증 화면으로 이동
+                // 인증 성공: 비밀번호 설정 화면으로 이동
                 return ResponseEntity.ok(new EmailAuthResponse(
                         true,
-                        "인증이 완료되었습니다. 도서관 전자출입증을 등록해주세요.",
+                        "인증이 완료되었습니다. 비밀번호를 설정해주세요.",
                         request.getEmail(),  // 아이디로 사용할 웹 메일 반환
                         null
                 ));
@@ -156,11 +156,11 @@ public class EmailAuthController {
         }
     }
 
-    // 비밀번호 설정 및 회원가입 (도서관 전자출입증 인증 필수)
+    // 비밀번호 설정 및 회원가입 (이메일 인증 완료 후)
     @PostMapping(value = "/set-password", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "비밀번호 설정 및 회원가입",
-            description = "이메일 인증과 도서관 전자출입증 인증이 완료된 사용자의 비밀번호를 설정하고 회원가입을 완료합니다. 이전에 도서관 인증에서 추출한 학번과 이름을 사용합니다."
+            description = "이메일 인증이 완료된 사용자의 비밀번호를 설정하고 회원가입을 완료합니다. 도서관 전자출입증 인증은 이후 단계에서 진행됩니다."
     )
     public ResponseEntity<EmailAuthResponse> setPassword(@RequestBody PasswordSetRequest request) {
         try {
@@ -192,55 +192,16 @@ public class EmailAuthController {
                 ));
             }
 
-            // 이전에 완료한 도서관 전자출입증 인증 정보 조회
-            LibraryCardAuthInfo authInfo = libraryCardAuthService.getLibraryCardAuthInfo(request.getEmail());
-            
-            if (authInfo == null) {
-                return ResponseEntity.badRequest().body(new EmailAuthResponse(
-                        false,
-                        "도서관 전자출입증 인증이 완료되지 않았거나 만료되었습니다. 먼저 도서관 전자출입증을 등록해주세요.",
-                        request.getEmail(),
-                        null
-                ));
-            }
-
-            // 도서관 인증 정보의 학번과 이름이 유효한지 확인
-            String studentId = authInfo.getStudentId();
-            String name = authInfo.getName();
-            
-            if (studentId == null || studentId.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(new EmailAuthResponse(
-                        false,
-                        "도서관 전자출입증 인증 정보에 학번이 없습니다. 도서관 전자출입증을 다시 등록해주세요.",
-                        request.getEmail(),
-                        null
-                ));
-            }
-            
-            if (name == null || name.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(new EmailAuthResponse(
-                        false,
-                        "도서관 전자출입증 인증 정보에 이름이 없습니다. 도서관 전자출입증을 다시 등록해주세요.",
-                        request.getEmail(),
-                        null
-                ));
-            }
-
-            // 회원가입 처리 (이전에 저장된 학번과 이름 사용)
-            userService.register(
+            // 비밀번호 임시 저장 (도서관 인증 완료 후 회원가입 처리)
+            emailAuthService.savePasswordForRegistration(
                     request.getEmail(), 
                     request.getPassword(), 
-                    request.getConfirmPassword(),
-                    studentId,
-                    name
+                    request.getConfirmPassword()
             );
-            
-            // 회원가입 완료 후 도서관 인증 정보 제거
-            libraryCardAuthService.removeLibraryCardAuthInfo(request.getEmail());
 
             return ResponseEntity.ok(new EmailAuthResponse(
                     true,
-                    "회원가입이 완료되었습니다.",
+                    "비밀번호 설정이 완료되었습니다. 도서관 전자출입증을 등록해주세요.",
                     request.getEmail(),
                     null
             ));

@@ -34,6 +34,9 @@ public class EmailAuthService {
     // 인증 완료된 이메일 추적 (비밀번호 설정 단계를 위해)
     private final Map<String, Boolean> verifiedEmails = new ConcurrentHashMap<>();
 
+    // 회원가입용 비밀번호 임시 저장 (도서관 인증 완료 후 회원가입 처리)
+    private final Map<String, PasswordInfo> passwordStorage = new ConcurrentHashMap<>();
+
     // 비밀번호 변경용 인증 코드 저장 (회원가입용과 분리)
     private final Map<String, AuthCodeInfo> passwordResetCodeStorage = new ConcurrentHashMap<>();
 
@@ -121,6 +124,42 @@ public class EmailAuthService {
             }
         }
         return null;
+    }
+
+    // 비밀번호 임시 저장 (도서관 인증 완료 후 회원가입 처리용)
+    public void savePasswordForRegistration(String email, String password, String confirmPassword) {
+        // 이메일 인증 완료 여부 확인
+        if (!isEmailVerified(email)) {
+            throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다. 먼저 이메일 인증을 완료해주세요.");
+        }
+
+        // 비밀번호 일치 확인
+        if (!password.equals(confirmPassword)) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 비밀번호 임시 저장 (30분 유효)
+        passwordStorage.put(email, new PasswordInfo(password, LocalDateTime.now()));
+        log.info("비밀번호 임시 저장 완료: {}", email);
+    }
+
+    // 임시 저장된 비밀번호 조회 및 제거 (도서관 인증 완료 후 회원가입 처리 시 사용)
+    public PasswordInfo getAndRemovePasswordForRegistration(String email) {
+        PasswordInfo passwordInfo = passwordStorage.get(email);
+        if (passwordInfo == null) {
+            return null;
+        }
+
+        // 만료 확인 (30분)
+        if (passwordInfo.isExpired(30)) {
+            passwordStorage.remove(email);
+            log.warn("임시 저장된 비밀번호 만료: {}", email);
+            return null;
+        }
+
+        // 사용 후 제거
+        passwordStorage.remove(email);
+        return passwordInfo;
     }
 
     // 비밀번호 변경용 인증 코드 생성 및 이메일 전송
@@ -318,6 +357,25 @@ public class EmailAuthService {
 
         public String getCode() {
             return code;
+        }
+
+        public boolean isExpired(int expirationMinutes) {
+            return LocalDateTime.now().isAfter(createdAt.plusMinutes(expirationMinutes));
+        }
+    }
+
+    // 비밀번호 정보를 저장하는 내부 클래스
+    public static class PasswordInfo {
+        private final String password;
+        private final LocalDateTime createdAt;
+
+        public PasswordInfo(String password, LocalDateTime createdAt) {
+            this.password = password;
+            this.createdAt = createdAt;
+        }
+
+        public String getPassword() {
+            return password;
         }
 
         public boolean isExpired(int expirationMinutes) {

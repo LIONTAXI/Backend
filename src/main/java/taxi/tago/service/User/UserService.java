@@ -58,16 +58,62 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 5. 도서관 전자출입증 인증 필수 확인
+        // 5. 비밀번호 암호화 및 사용자 생성
+        String encodedPassword = passwordEncoder.encode(password);
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(encodedPassword);
+        // 학번과 이름은 도서관 인증에서 나중에 설정 (null 허용)
+        if (studentId != null && !studentId.trim().isEmpty()) {
+            user.setStudentId(studentId.trim());
+        }
+        if (name != null && !name.trim().isEmpty()) {
+            user.setName(name.trim());
+        }
+        user.setLastActiveAt(LocalDateTime.now());
+        user.setImgUrl(DEFAULT_PROFILE_IMAGE);
+
+        // 7. 사용자 저장 (PrePersist에서 shortStudentId 자동 추출됨)
+        User savedUser = userRepository.save(user);
+
+        // 8. 인증 완료 상태 제거 (이미 사용됨)
+        emailAuthService.removeVerifiedEmail(email);
+
+        log.info("회원가입 완료: {}, 학번: {}, 이름: {}", email, 
+                studentId != null ? studentId : "미설정", 
+                name != null ? name : "미설정");
+        return savedUser;
+    }
+
+    // 완전한 회원가입 처리 (도서관 인증 완료 후 호출)
+    @Transactional
+    public User completeRegistration(String email, String password, String studentId, String name) {
+        // 1. 이메일 인증 완료 여부 확인
+        if (!emailAuthService.isEmailVerified(email)) {
+            throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+        }
+
+        // 2. 이미 가입된 이메일인지 확인
+        if (userRepository.findByEmailAndRole(email, UserRole.USER).isPresent()) {
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
+
+        // 3. 비밀번호 유효성 검증
+        String passwordError = PasswordValidator.validate(password);
+        if (passwordError != null) {
+            throw new IllegalArgumentException(passwordError);
+        }
+
+        // 4. 학번과 이름 필수 확인
         if (studentId == null || studentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("도서관 전자출입증 인증이 완료되지 않았습니다. 전자출입증을 등록해주세요.");
+            throw new IllegalArgumentException("학번이 필요합니다.");
         }
-
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("도서관 전자출입증 인증이 완료되지 않았습니다. 전자출입증을 등록해주세요.");
+            throw new IllegalArgumentException("이름이 필요합니다.");
         }
 
-        // 6. 비밀번호 암호화 및 사용자 생성
+        // 5. 비밀번호 암호화 및 사용자 생성
         String encodedPassword = passwordEncoder.encode(password);
 
         User user = new User();
@@ -78,13 +124,13 @@ public class UserService {
         user.setLastActiveAt(LocalDateTime.now());
         user.setImgUrl(DEFAULT_PROFILE_IMAGE);
 
-        // 7. 사용자 저장 (PrePersist에서 shortStudentId 자동 추출됨)
+        // 6. 사용자 저장 (PrePersist에서 shortStudentId 자동 추출됨)
         User savedUser = userRepository.save(user);
 
-        // 8. 인증 완료 상태 제거 (이미 사용됨)
+        // 7. 인증 완료 상태 제거 (이미 사용됨)
         emailAuthService.removeVerifiedEmail(email);
 
-        log.info("회원가입 완료: {}, 학번: {}, 이름: {}", email, studentId, name);
+        log.info("완전한 회원가입 완료: {}, 학번: {}, 이름: {}", email, studentId, name);
         return savedUser;
     }
 

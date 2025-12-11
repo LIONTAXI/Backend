@@ -30,6 +30,7 @@ public class LibraryCardAuthService {
     private final LibraryCardAuthRepository libraryCardAuthRepository;
     private final FileStorageService fileStorageService;
     private final EmailAuthService emailAuthService;
+    private final taxi.tago.service.User.UserService userService;
 
     // 서울여대 학번 패턴: 10자리 숫자 (예: 2021111222)
     private static final Pattern SWU_STUDENT_ID_PATTERN = Pattern.compile("^\\d{10}$");
@@ -66,22 +67,34 @@ public class LibraryCardAuthService {
         }
     }
 
-    // 도서관 전자출입증 이미지를 OCR로 처리 (회원가입 전용, 이메일 인증 완료된 이메일과 연결하여 임시 저장)
-    public LibraryCardAuthResult processLibraryCardImage(MultipartFile imageFile) {
+    // 도서관 전자출입증 이미지를 OCR로 처리 (회원가입 플로우: 비밀번호 설정 완료 후 사용자 정보 업데이트)
+    @Transactional
+    public LibraryCardAuthResult processLibraryCardImageForRegistration(String email, MultipartFile imageFile) {
         try {
             // 1. 이미지 파일 검증
             if (imageFile == null || imageFile.isEmpty()) {
                 return LibraryCardAuthResult.failure("이미지를 등록해주세요.");
             }
 
-            // 2. OCR로 이미지에서 텍스트 추출
+            // 2. 임시 저장된 비밀번호 조회 (비밀번호 설정 단계에서 저장됨)
+            EmailAuthService.PasswordInfo passwordInfo = emailAuthService.getAndRemovePasswordForRegistration(email);
+            if (passwordInfo == null) {
+                return LibraryCardAuthResult.failure("비밀번호 설정이 완료되지 않았습니다. 먼저 비밀번호를 설정해주세요.");
+            }
+
+            // 3. 이미 가입된 이메일인지 확인
+            if (userRepository.findByEmailAndRole(email, taxi.tago.constant.UserRole.USER).isPresent()) {
+                return LibraryCardAuthResult.failure("이미 가입된 이메일입니다.");
+            }
+
+            // 3. OCR로 이미지에서 텍스트 추출
             byte[] imageBytes = imageFile.getBytes();
             OcrResult ocrResult = ocrService.extractText(imageBytes);
 
             String extractedName = ocrResult.getName();
             String extractedStudentId = ocrResult.getStudentId();
 
-            // 3. 이름 또는 학번이 추출되지 않은 경우
+            // 4. 이름 또는 학번이 추출되지 않은 경우
             if (extractedName == null || extractedName.trim().isEmpty()) {
                 return LibraryCardAuthResult.failureWithDetails(
                     "이미지에서 이름을 찾을 수 없습니다. 명확한 사진을 다시 등록해주세요.",
@@ -96,7 +109,7 @@ public class LibraryCardAuthService {
                 );
             }
 
-            // 4. 서울여대 학번 형식 검증
+            // 5. 서울여대 학번 형식 검증
             if (!isValidSwuStudentId(extractedStudentId)) {
                 return LibraryCardAuthResult.failureWithDetails(
                     "서울여대 학번 형식이 아닙니다. 올바른 전자출입증을 등록해주세요.",
@@ -104,26 +117,23 @@ public class LibraryCardAuthService {
                 );
             }
 
-            // 5. 이메일 인증 완료된 이메일 찾기 (회원가입 플로우에서 하나만 있어야 함)
-            String verifiedEmail = emailAuthService.getVerifiedEmailForRegistration();
-            if (verifiedEmail == null) {
-                return LibraryCardAuthResult.failure("이메일 인증이 완료되지 않았습니다. 먼저 이메일 인증을 완료해주세요.");
-            }
+            // 6. 완전한 회원가입 처리 (비밀번호, 학번, 이름 모두 포함)
+            User user = userService.completeRegistration(
+                    email,
+                    passwordInfo.getPassword(),
+                    extractedStudentId.trim(),
+                    extractedName.trim()
+            );
 
-            // 6. 이메일과 연결하여 인증 정보 임시 저장 (30분 유효)
-            libraryCardAuthStorage.put(verifiedEmail, new LibraryCardAuthInfo(
-                extractedName.trim(),
-                extractedStudentId.trim(),
-                LocalDateTime.now()
-            ));
-            log.info("도서관 전자출입증 인증 정보 임시 저장: email={}, name={}, studentId={}", 
-                verifiedEmail, extractedName, extractedStudentId);
+            // 7. 인증 기록 저장
+            LibraryCardAuth auth = createAuthRecord(user, extractedName.trim(), extractedStudentId.trim(), true, null);
+            libraryCardAuthRepository.save(auth);
 
-            // 7. OCR 인식 성공
-            log.info("도서관 전자출입증 OCR 인식 성공: name={}, studentId={}", extractedName, extractedStudentId);
+            log.info("도서관 전자출입증 인증 완료 및 회원가입 완료: email={}, name={}, studentId={}", 
+                email, extractedName, extractedStudentId);
 
             return LibraryCardAuthResult.success(
-                "인증 완료!",
+                "인증 완료! 회원가입이 완료되었습니다.",
                 extractedName, extractedStudentId
             );
 
