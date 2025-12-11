@@ -366,6 +366,10 @@ public class TaxiPartyService {
             throw new IllegalArgumentException("총대슈니만 수정할 수 있습니다.");
         }
 
+        // 현재 인원보다 적게 최대 인원을 설정하지 못하도록 막기
+        if (dto.getMaxParticipants() < party.getCurrentParticipants()) {
+            throw new IllegalArgumentException("현재까지 모인 인원보다 적게 모집 인원을 설정할 수 없습니다.");
+        }
 
         LocalDateTime meetingDateTime = LocalDateTime.of(LocalDate.now(), dto.getMeetingTime());
 
@@ -398,6 +402,9 @@ public class TaxiPartyService {
 
         // 상태 변경
         taxiUser.changeStatus(ParticipationStatus.KICKED);
+
+        // 강퇴했으니 현재 인원 1명 감소
+        taxiParty.setCurrentParticipants(taxiParty.getCurrentParticipants() - 1);
 
         // 시스템 메시지 채팅방에 전송 (SYSTEM 타입)
         chatRoomRepository.findByTaxiPartyId(taxiPartyId)
