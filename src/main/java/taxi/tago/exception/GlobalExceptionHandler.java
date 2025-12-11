@@ -22,4 +22,13 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body("[데이터 형식 에러] 요청한 JSON 형식을 확인해주세요. (날짜/시간/타입 등)\n" + e.getMessage());
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleAll(Exception e) {
+        e.printStackTrace();
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("[서버 내부 에러] " + e.getClass().getName() + " : " + e.getMessage());
+    }
 }
