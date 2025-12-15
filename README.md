@@ -116,13 +116,108 @@ tago-backend
 ---
 ## ⚙️ CI/CD 자동 배포 파이프라인
 
+슈슝 백엔드는 GitHub Actions 기반 CI/CD로 운영하며, **main 브랜치에 머지/푸시될 때마다 자동으로 빌드 → EC2 배포 → 서비스 재기동**까지 이어지도록 구성했습니다.
+
+### ✅ 파이프라인 흐름
+- **GitHub Actions 트리거**
+  - `main` 브랜치에 `push` 발생 시 자동 실행
+- **Gradle 빌드 & 테스트**
+  - JDK 17 환경에서 `./gradlew clean build`
+  - 테스트는 프로젝트 정책에 따라 실행/스킵 가능
+- **배포 산출물 전송**
+  - 생성된 `*.jar` 파일을 EC2로 전송 (SCP)
+- **EC2에서 서비스 반영**
+  - 기존 프로세스 종료 또는 `systemd` 재시작
+  - `systemctl status`, `journalctl -u ...` 등을 통해 정상 기동 확인
+
+### 🔐 GitHub Secrets (필수)
+CI/CD 워크플로우에서 아래 값들을  
+`GitHub Repository → Settings → Secrets and variables → Actions`에 등록합니다.
+
+- **EC2_HOST**: EC2 Public IPv4 / 도메인
+- **EC2_USER**: `ubuntu`
+- **EC2_SSH_KEY**: `pem` 키 전체 내용 (멀티라인 그대로)
+- **EC2_PORT**: 보통 `22`
+- **(선택) APP_DIR**: `/home/ubuntu/swushoong/app` 같은 배포 디렉토리
+- **(선택) SERVICE_NAME**: `swushoong` (systemd 서비스명)
+
+### 🧩 운영 방식 포인트
+- **CI에서 빌드 후 산출물(JAR)만 배포**해 서버 환경 이슈를 최소화했습니다.
+- 서버 실행은 `nohup` 대신 **systemd 서비스**로 관리하여, 재부팅/장애 상황에서도 자동 복구가 가능하도록 했습니다.
+
 ---
 ## 🤖 Backend(Spring Boot) CI/CD 자동화
 
+### 📦 빌드 기준
+- **Java 17** (Amazon Corretto 17 / Temurin 17 호환)
+- **Gradle 기반 빌드**
+- **빌드 산출물**: `build/libs/*.jar`
+
+### 🚀 배포 구조 예시
+EC2 내부에서 백엔드 파일을 아래와 같이 관리합니다.
+
+```bash
+/home/ubuntu/swushoong/
+ ├─ app/
+ │   ├─ application.yml (또는 application-prod.yml)
+ │   └─ swushoong.jar
+ └─ logs/ 
+```
+
+### 🧷 systemd 서비스 예시 운영
+- **서비스 이름 예**: `swushoong.service`
+- **배포 시 수행되는 핵심 작업**
+  - 최신 `jar`로 교체
+  - 필요 시 `sudo systemctl daemon-reload`
+  - `sudo systemctl restart swushoong`
+  - `sudo systemctl status swushoong`
+
+### 🔎 배포/장애 확인 커맨드
+```bash
+sudo systemctl status swushoong
+sudo journalctl -u swushoong -n 200 --no-pager
+sudo journalctl -u swushoong -f
+```
+
 ---
 ## 🔒 HTTPS / SSL
-- 
 
+슈슝은 사용자 로그인/토큰(JWT) 및 개인정보가 오가는 서비스이므로, 운영 환경에서는 **HTTPS(SSL/TLS)**를 필수로 적용했습니다.  
+EC2 앞단에 **Nginx Reverse Proxy**를 두고, 외부는 **443(HTTPS)**로 받고 내부 Spring Boot는 **8080**으로 프록시합니다.
+
+### 🧭 전체 구조
+
+Client (Browser)  
+   ↓ HTTPS :443  
+Nginx (EC2)  
+   ├─ SSL Termination (Let’s Encrypt)  
+   └─ Reverse Proxy → `http://localhost:8080` (Spring Boot)
+
+### 🔑 인증서 발급 방식
+- **Let’s Encrypt + Certbot** 사용
+- 도메인 기반으로 인증서 발급 후 **자동 갱신** 설정
+
+### ♻️ 자동 갱신
+Let’s Encrypt 인증서는 유효기간이 짧기 때문에 **자동 갱신**을 구성합니다.
+
+### 🧱 Nginx 핵심 설정 요약
+- **80 → 443 리다이렉트**
+- `location /api/**` 요청은 Spring Boot로 프록시
+- 필요 시 CORS / 업로드 용량 / 타임아웃 등을 Nginx에서 보완
+
+개념 예시:
+- `listen 80;` 에서는 HTTPS로 강제 이동
+- `listen 443 ssl;` 에서 인증서 적용 + 프록시 설정
+
+### 🔐 운영 보안 체크리스트
+- **보안그룹 인바운드**
+  - `22 (SSH)`: 팀/본인 IP만 허용 권장
+  - `80, 443`: `0.0.0.0/0` 허용
+  - `8080`: 외부 오픈 금지 (Nginx 통해서만 접근)
+- **Spring Boot 설정**
+  - 운영 환경에서는 `application-prod.yml` + 환경변수로 민감정보 분리
+- **도메인(DNS) 설정**
+  - 호스팅 레코드에서 **A 레코드가 EC2 IP를 가리키도록** 설정
 ---
 ## 👥 Backend Contributors
 - 서울여대 멋사 13기 소프트웨어융합학과 24학번 우예빈
