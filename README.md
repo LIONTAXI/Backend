@@ -1,4 +1,4 @@
-### 멋사대학 13기 취업트랙 - swuLab
+### 멋사대학 13기 취업트랙 - SWULab
 # 🚕 슈슝 swushoong - Backend
 택시팟 모집부터 정산 관리까지 한번에, 서울여자대학교 학우들의 택시 동승 매칭 서비스 슈슝의 백엔드 레포지토리입니다.
 
@@ -165,7 +165,7 @@ EC2 내부에서 백엔드 파일을 아래와 같이 관리합니다.
 ```
 
 ### 🧷 systemd 서비스 예시 운영
-- **서비스 이름 예**: `swushoong.service`
+- **서비스 이름**: `swushoong.service`
 - **배포 시 수행되는 핵심 작업**
   - 최신 `jar`로 교체
   - 필요 시 `sudo systemctl daemon-reload`
@@ -186,12 +186,13 @@ sudo journalctl -u swushoong -f
 EC2 앞단에 **Nginx Reverse Proxy**를 두고, 외부는 **443(HTTPS)**로 받고 내부 Spring Boot는 **8080**으로 프록시합니다.
 
 ### 🧭 전체 구조
-
+```
 Client (Browser)  
    ↓ HTTPS :443  
 Nginx (EC2)  
    ├─ SSL Termination (Let’s Encrypt)  
    └─ Reverse Proxy → `http://localhost:8080` (Spring Boot)
+```
 
 ### 🔑 인증서 발급 방식
 - **Let’s Encrypt + Certbot** 사용
@@ -205,7 +206,7 @@ Let’s Encrypt 인증서는 유효기간이 짧기 때문에 **자동 갱신**�
 - `location /api/**` 요청은 Spring Boot로 프록시
 - 필요 시 CORS / 업로드 용량 / 타임아웃 등을 Nginx에서 보완
 
-개념 예시:
+개념 :
 - `listen 80;` 에서는 HTTPS로 강제 이동
 - `listen 443 ssl;` 에서 인증서 적용 + 프록시 설정
 
